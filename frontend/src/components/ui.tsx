@@ -77,7 +77,7 @@ export function Select({
   label: string;
   name: string;
   options: (string | { value: string; label: string })[];
-  defaultValue?:string|number;
+  defaultValue?: string | number;
 }) {
   return (
     <label>
@@ -141,7 +141,18 @@ export function Form({
         setBusy(true);
         setError("");
         try {
-          await onSubmit(new FormData(e.currentTarget));
+          const data = new FormData(e.currentTarget);
+          const fileInputs = Array.from(
+            e.currentTarget.querySelectorAll<HTMLInputElement>(
+              'input[type="file"][name]',
+            ),
+          ).filter((input) => !input.disabled);
+          for (const name of new Set(fileInputs.map((input) => input.name)))
+            data.delete(name);
+          for (const input of fileInputs)
+            for (const file of Array.from(input.files || []))
+              data.append(input.name, file);
+          await onSubmit(data);
         } catch (e) {
           setError((e as Error).message);
         } finally {

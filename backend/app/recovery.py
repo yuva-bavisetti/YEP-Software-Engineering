@@ -116,6 +116,12 @@ def recover(db):
             if ins and ins["completed"]
             else None
         )
+        if (
+            not p
+            and not q
+            and r.get("status") in ("Rejected", "More Information Required")
+        ):
+            status = r["status"]
         if status:
             db.requests.update_one({"id": r["id"]}, {"$set": {"status": status}})
     for m in db.milestones.find({"published_update": {"$exists": True}}):

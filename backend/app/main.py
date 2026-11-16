@@ -300,7 +300,7 @@ def create_request(d: RequestInput, u=Depends(user)):
         valid_date(d.preferred_date)
     if not db.services.find_one({"name": d.service, "active": True}):
         fail(422, "Select an available service")
-    owned_files(u, d.file_ids)
+    owned_files(u, d.file_ids, "image")
     r = insert(
         "requests",
         {
@@ -386,6 +386,8 @@ def inspect(rid: str, d: InspectionInput, u=Depends(user)):
 def create_quote(rid: str, d: QuoteInput, u=Depends(user)):
     roles(u, "ADMIN")
     r = get("requests", rid)
+    if r["status"] in ("Rejected", "More Information Required"):
+        fail(409, "Resolve the request review before preparing a quotation")
     if not db.inspections.find_one({"request_id": rid, "completed": True}):
         fail(409, "Complete the initial inspection first")
     p = db.projects.find_one({"request_id": rid})
@@ -513,6 +515,16 @@ def decision(qid: str, d: Decision, u=Depends(user)):
     financial(u, q["customer_id"])
     if d.decision not in ("Accepted", "Rejected", "Revision Requested"):
         fail(422, "Invalid decision")
+    if q.get("project_id") and d.decision != "Accepted":
+        p = get("projects", q["project_id"])
+        phase = next((ph for ph in p["phases"] if ph["number"] == q["phase"]), None)
+        if p["status"] == "Completed" or (
+            phase and phase["status"] in ("Active", "Completed")
+        ):
+            fail(
+                409,
+                "Work has already started for this phase; contact Admin for a controlled correction",
+            )
     if not db.quotes.update_one(
         {"id": qid, "status": "Published"},
         {"$set": {"status": d.decision, "decided_at": now()}},
@@ -644,7 +656,21 @@ def assign(pid: str, d: Assignment, u=Depends(user)):
 @app.get("/api/projects/{pid}/milestones")
 def milestones(pid: str, u=Depends(user)):
     project_access(u, get("projects", pid))
-    return [clean(d) for d in db.milestones.find({"project_id": pid})]
+    result = []
+    for m in db.milestones.find({"project_id": pid}):
+        dto = clean(m)
+        dto["status"] = (
+            "Completed"
+            if m["progress"] == 100
+            else "In Progress"
+            if m["progress"]
+            else "Pending"
+        )
+        updater = db.users.find_one({"id": m.get("updated_by")})
+        dto["last_updated_by_name"] = updater["name"] if updater else "Project team"
+        dto["updated_at"] = m.get("updated_at", m["created_at"])
+        result.append(dto)
+    return result
 
 
 @app.post("/api/projects/{pid}/milestones")
@@ -672,6 +698,9 @@ def progress(mid: str, d: Progress, u=Depends(user)):
     m = get("milestones", mid)
     p = get("projects", m["project_id"])
     execution(u, p)
+    phase = next((ph for ph in p["phases"] if ph["number"] == m["phase"]), None)
+    if not phase or phase["status"] != "Active":
+        fail(409, "Progress changes require an active phase")
     db.milestones.update_one(
         {"id": mid},
         {"$set": {"progress": d.progress, "updated_by": u["id"], "updated_at": now()}},
@@ -754,6 +783,9 @@ def task(pid: str, d: TaskInput, u=Depends(user)):
     p = get("projects", pid)
     execution(u, p)
     valid_date(d.deadline)
+    phase = next((ph for ph in p["phases"] if ph["number"] == d.phase), None)
+    if not phase or phase["status"] == "Completed":
+        fail(409, "Select a planned or active phase for this task")
     if d.worker_id not in p["worker_ids"]:
         fail(422, "Assign this worker to the project first")
     return insert("tasks", {**d.model_dump(), "project_id": pid, "status": "Pending"})
@@ -768,6 +800,9 @@ def task_status(tid: str, d: Decision, u=Depends(user)):
         fail(403, "Not your task")
     if p["status"] != "Active":
         fail(409, "Task updates require an active project")
+    phase = next((ph for ph in p["phases"] if ph["number"] == t.get("phase", 1)), None)
+    if not phase or phase["status"] != "Active":
+        fail(409, "Task execution requires its phase to be active")
     if d.decision not in ("Pending", "In Progress", "Completed", "Blocked"):
         fail(422, "Invalid status")
     db.tasks.update_one(
@@ -1129,6 +1164,10 @@ def phase_update(pid: str, number: int, d: PhaseInput, u=Depends(user)):
         ):
             fail(409, "Finish the current and preceding phases first")
     if d.status == "Completed":
+        if not db.milestones.count_documents({"project_id": pid, "phase": number}):
+            fail(
+                409, "Define and verify milestones for this phase before completing it"
+            )
         if db.milestones.count_documents(
             {"project_id": pid, "phase": number, "progress": {"$ne": 100}}
         ) or db.tasks.count_documents(
@@ -1249,6 +1288,10 @@ def quality(pid: str, u=Depends(user)):
 def quality_record(pid: str, d: QualityInput, u=Depends(user)):
     p = get("projects", pid)
     execution(u, p)
+    if d.passed and any(not i.passed for i in d.items):
+        fail(422, "Every checklist item must pass before the inspection passes")
+    if not d.passed and not d.defects:
+        fail(422, "Describe defects for a failed quality inspection")
     return insert(
         "quality", {"project_id": pid, **d.model_dump(), "reviewed_by": u["id"]}
     )
@@ -1262,7 +1305,7 @@ def admin_summary(u=Depends(user)):
     projects = list(db.projects.find())
     qs = list(db.quotes.find())
     payments = list(db.payments.find())
-    return {
+    result = {
         "customers": sum(x["role"] == "CUSTOMER" for x in users),
         "managers": sum(x["role"] == "MANAGER" for x in users),
         "workers": sum(x["role"] == "WORKER" for x in users),
@@ -1293,6 +1336,22 @@ def admin_summary(u=Depends(user)):
             if x["role"] in ("WORKER", "MANAGER")
         },
     }
+
+    result["project_months"] = {
+        month: sum(p["created_at"][:7] == month for p in projects)
+        for month in sorted({p["created_at"][:7] for p in projects})
+    }
+    result["quotation_status"] = {
+        status: sum(q["status"] == status for q in qs)
+        for status in (
+            "Draft",
+            "Published",
+            "Accepted",
+            "Rejected",
+            "Revision Requested",
+        )
+    }
+    return result
 
 
 @app.get("/api/admin/customers")
@@ -1450,10 +1509,22 @@ def employee_details(uid: str, d: EmployeeDetails, u=Depends(user)):
     target = get("users", uid)
     if target["role"] not in ("MANAGER", "WORKER"):
         fail(403, "This endpoint edits employee details only")
-    try:
-        db.users.update_one(
-            {"id": uid}, {"$set": {**d.model_dump(), "email": d.email.lower()}}
+    if (
+        d.role
+        and d.role != target["role"]
+        and db.projects.find_one(
+            {
+                "status": {"$ne": "Completed"},
+                "$or": [{"manager_id": uid}, {"worker_ids": uid}],
+            }
         )
+    ):
+        fail(409, "Reassign active project duties before changing employee role")
+    payload = {**d.model_dump(exclude={"role"}), "email": d.email.lower()}
+    if d.role:
+        payload["role"] = d.role
+    try:
+        db.users.update_one({"id": uid}, {"$set": payload})
     except DuplicateKeyError:
         fail(409, "Email already registered")
     audit(u, "employee_edited", uid)
@@ -1466,6 +1537,10 @@ def edit_task(tid: str, d: TaskInput, u=Depends(user)):
     p = get("projects", t["project_id"])
     execution(u, p)
     valid_date(d.deadline)
+    if not any(
+        ph["number"] == d.phase and ph["status"] != "Completed" for ph in p["phases"]
+    ):
+        fail(409, "Select a planned or active phase")
     if d.worker_id not in p["worker_ids"]:
         fail(422, "Select a worker assigned to this project")
     db.tasks.update_one({"id": tid}, {"$set": {**d.model_dump(), "updated_at": now()}})

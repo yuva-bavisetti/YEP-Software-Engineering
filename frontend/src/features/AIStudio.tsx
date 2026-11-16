@@ -119,7 +119,7 @@ export default function AIStudio({
             </div>
           </article>
         </div>
-      ) : tab === "AI Assistant" ? (
+      ) : tab === "AI Design Assistant" ? (
         <article className="card ai-assistant">
           <div className="assistant-mark">
             <Sparkles size={32} />

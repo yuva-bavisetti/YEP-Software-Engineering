@@ -1,4 +1,119 @@
-import {useEffect,useState} from 'react';
-import {api,Row} from '../api';
-import {Form,Field,Text,Select} from '../components/ui';
-export default function PortfolioSettings({project,notify}:{project:Row;notify:(s:string)=>void}){const[photos,setPhotos]=useState<Row[]>([]),[selected,setSelected]=useState<string[]>([]),[entry,setEntry]=useState<Row|null>(null),[ready,setReady]=useState(false),[error,setError]=useState('');useEffect(()=>{Promise.all([api('/projects/'+project.id+'/chat/customer'),api('/projects/'+project.id+'/portfolio')]).then(([m,p])=>{setPhotos(m.filter((r:Row)=>r.file_id&&r.verification==='Approved'));setEntry(p);setSelected(p?.file_ids||[]);setReady(true)}).catch(e=>setError(e.message));},[project.id]);if(error)return <p className="error">{error}</p>;if(!ready)return <p>Loading portfolio settings…</p>;return <article className="card"><h2>Public project portfolio</h2><p>Publish only the selected verified progress photos, a public description and optional customer feedback. Request details, addresses, chats, staff and financial records stay private.</p><Form submit="Save public portfolio" onSubmit={async f=>{await api('/projects/'+project.id+'/portfolio','PUT',{title:f.get('title'),description:f.get('description'),category:f.get('category'),file_ids:selected,published:f.get('published')==='true',show_feedback:f.get('show_feedback')==='true'});notify('Public portfolio updated')}}><Field label="Public title" name="title" defaultValue={entry?.title||project.title}/><Field label="Category" name="category" defaultValue={entry?.category||'Renovation'}/><Select label="Publication" name="published" defaultValue={String(entry?.published||false)} options={[{value:'false',label:'Private'},{value:'true',label:'Published'}]}/><Select label="Show customer feedback" name="show_feedback" defaultValue={String(entry?.show_feedback||false)} options={[{value:'false',label:'Hide feedback'},{value:'true',label:'Publish feedback'}]}/><Text label="Public description" name="description" defaultValue={entry?.description}/><div className="wide photo-choices">{photos.map(p=><label key={p.id}><input type="checkbox" checked={selected.includes(p.file_id)} onChange={e=>setSelected(e.target.checked?[...selected,p.file_id]:selected.filter(id=>id!==p.file_id))}/><img src={'/api/files/'+p.file_id} alt={p.text||'Verified photograph'}/><span>{p.text}</span></label>)}</div>{!photos.length&&<p className="wide">Share verified progress in Customer Chat before choosing public photographs.</p>}</Form></article>}
+import { useEffect, useState } from "react";
+import { api, Row } from "../api";
+import { Form, Field, Text, Select } from "../components/ui";
+export default function PortfolioSettings({
+  project,
+  notify,
+}: {
+  project: Row;
+  notify: (s: string) => void;
+}) {
+  const [photos, setPhotos] = useState<Row[]>([]),
+    [selected, setSelected] = useState<string[]>([]),
+    [entry, setEntry] = useState<Row | null>(null),
+    [ready, setReady] = useState(false),
+    [error, setError] = useState("");
+  useEffect(() => {
+    Promise.all([
+      api("/projects/" + project.id + "/chat/customer"),
+      api("/projects/" + project.id + "/portfolio"),
+    ])
+      .then(([m, p]) => {
+        setPhotos(
+          m.filter((r: Row) => r.file_id && r.verification === "Approved"),
+        );
+        setEntry(p);
+        setSelected(p?.file_ids || []);
+        setReady(true);
+      })
+      .catch((e) => setError(e.message));
+  }, [project.id]);
+  if (error) return <p className="error">{error}</p>;
+  if (!ready) return <p>Loading portfolio settings…</p>;
+  return (
+    <article className="card">
+      <h2>Public project portfolio</h2>
+      <p>
+        Publish only the selected verified progress photos, a public description
+        and optional customer feedback. Request details, addresses, chats, staff
+        and financial records stay private.
+      </p>
+      <Form
+        submit="Save public portfolio"
+        onSubmit={async (f) => {
+          await api("/projects/" + project.id + "/portfolio", "PUT", {
+            title: f.get("title"),
+            description: f.get("description"),
+            category: f.get("category"),
+            file_ids: selected,
+            published: f.get("published") === "true",
+            show_feedback: f.get("show_feedback") === "true",
+          });
+          notify("Public portfolio updated");
+        }}
+      >
+        <Field
+          label="Public title"
+          name="title"
+          defaultValue={entry?.title || project.title}
+        />
+        <Field
+          label="Category"
+          name="category"
+          defaultValue={entry?.category || "Renovation"}
+        />
+        <Select
+          label="Publication"
+          name="published"
+          defaultValue={String(entry?.published || false)}
+          options={[
+            { value: "false", label: "Private" },
+            { value: "true", label: "Published" },
+          ]}
+        />
+        <Select
+          label="Show customer feedback"
+          name="show_feedback"
+          defaultValue={String(entry?.show_feedback || false)}
+          options={[
+            { value: "false", label: "Hide feedback" },
+            { value: "true", label: "Publish feedback" },
+          ]}
+        />
+        <Text
+          label="Public description"
+          name="description"
+          defaultValue={entry?.description}
+        />
+        <div className="wide photo-choices">
+          {photos.map((p) => (
+            <label key={p.id}>
+              <input
+                type="checkbox"
+                checked={selected.includes(p.file_id)}
+                onChange={(e) =>
+                  setSelected(
+                    e.target.checked
+                      ? [...selected, p.file_id]
+                      : selected.filter((id) => id !== p.file_id),
+                  )
+                }
+              />
+              <img
+                src={"/api/files/" + p.file_id}
+                alt={p.text || "Verified photograph"}
+              />
+              <span>{p.text}</span>
+            </label>
+          ))}
+        </div>
+        {!photos.length && (
+          <p className="wide">
+            Share verified progress in Customer Chat before choosing public
+            photographs.
+          </p>
+        )}
+      </Form>
+    </article>
+  );
+}

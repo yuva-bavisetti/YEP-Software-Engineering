@@ -50,14 +50,19 @@ def room_png():
     )
 
 
-def quotation_pdf():
+def quotation_pdf(
+    phase=1,
+    title="Surface preparation and interior painting",
+    amount="85000",
+    duration=14,
+):
     lines = [
         [
             "YEP - DEMONSTRATION QUOTATION",
-            "Phase 1: Surface preparation and interior painting",
+            f"Phase {phase}: {title}",
             "Materials: primer, emulsion, masking and protection",
             "Labour: preparation, two finish coats and clean-up",
-            "Total: INR 85,000.00 | Estimated duration: 14 days",
+            f"Total: INR {float(amount):,.2f} | Estimated duration: {duration} days",
             "This PDF is demo data; official amounts are recorded in the app.",
         ],
         [
@@ -76,7 +81,14 @@ def quotation_pdf():
     for page in lines:
         stream = (
             b"BT /F1 14 Tf 50 780 Td "
-            + b" ".join(("(" + line + ") Tj 0 -35 Td").encode() for line in page)
+            + b" ".join(
+                (
+                    "("
+                    + line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+                    + ") Tj 0 -35 Td"
+                ).encode("latin-1", errors="replace")
+                for line in page
+            )
             + b" ET"
         )
         content_index = len(objects) + 2

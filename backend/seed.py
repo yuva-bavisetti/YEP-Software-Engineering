@@ -5,6 +5,7 @@ import bcrypt
 from fastapi.testclient import TestClient
 from app import main as m
 from app.demo_assets import quotation_pdf, room_png
+from seed_portfolio import seed_completed_demo
 
 
 def seed():
@@ -56,6 +57,7 @@ def seed():
             )
     # Do not duplicate or reset demo records, even after they have been edited.
     if m.db.projects.find_one({"demo_key": "yep-initial-demo"}):
+        seed_completed_demo(users)
         print("Demo data already exists; no records overwritten.")
         return
     if m.db.requests.find_one({"demo_key": "yep-initial-demo"}):
@@ -122,7 +124,10 @@ def seed():
 
     def quote(phase, title, amount, duration):
         pdf = file(
-            a, f"phase-{phase}-quotation.pdf", quotation_pdf(), "application/pdf"
+            a,
+            f"phase-{phase}-quotation.pdf",
+            quotation_pdf(phase, title, amount, duration),
+            "application/pdf",
         )
         q = post(
             a,
@@ -260,6 +265,7 @@ def seed():
             "corrective_action": "Final finish review required after painting.",
         },
     )
+    seed_completed_demo(users)
     print("Demo ready: customer / owner / manager / worker @yep.local | Demo@12345")
 
 

@@ -50,7 +50,43 @@ export default function Finance({
               <strong>{money(data.balance_cents)}</strong>
             </div>
           </div>
-          <div className="progress-track" role="progressbar" aria-label="Verified payments against payable" aria-valuemin={0} aria-valuemax={100} aria-valuenow={data.total_cents>0?Math.min(100,Math.max(0,Math.floor(data.paid_cents/data.total_cents*100))):0}><div style={{width:(data.total_cents>0?Math.min(100,Math.max(0,data.paid_cents/data.total_cents*100)):0)+"%"}}/></div>{data.balance_cents<0&&<p className="notice">Customer credit: {money(-data.balance_cents)}. The overpayment is preserved in the ledger.</p>}<p className="muted tiny">
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label="Verified payments against payable"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={
+              data.total_cents > 0
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.floor((data.paid_cents / data.total_cents) * 100),
+                    ),
+                  )
+                : 0
+            }
+          >
+            <div
+              style={{
+                width:
+                  (data.total_cents > 0
+                    ? Math.min(
+                        100,
+                        Math.max(0, (data.paid_cents / data.total_cents) * 100),
+                      )
+                    : 0) + "%",
+              }}
+            />
+          </div>
+          {data.balance_cents < 0 && (
+            <p className="notice">
+              Customer credit: {money(-data.balance_cents)}. The overpayment is
+              preserved in the ledger.
+            </p>
+          )}
+          <p className="muted tiny">
             Payable includes accepted Phase 1 and published or accepted
             subsequent phases. Payments are verified offline; quotations are not
             revenue.

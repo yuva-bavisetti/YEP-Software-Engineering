@@ -1,3 +1,4 @@
+import SystemSettings from "./SystemSettings";
 import WorkspaceInsights from "./WorkspaceInsights";
 import ExecutionReports from "./ExecutionReports";
 import {
@@ -146,14 +147,17 @@ export default function Dashboard({
           { name: "Activity", icon: Clock },
           { name: "Reports", icon: Layers },
           { name: "Services", icon: Paintbrush },
+          { name: "System Settings", icon: Users },
           { name: "Customers & Enquiries", icon: Users },
         ]
       : []),
-    ...(user.role==="MANAGER"?[{name:"Execution Reports",icon:Layers}]:[]),
+    ...(user.role === "MANAGER"
+      ? [{ name: "Execution Reports", icon: Layers }]
+      : []),
     { name: "Profile", icon: Users },
   ];
   const selectTab = (s: string) => {
-    if(s==="Notifications")refresh();
+    if (s === "Notifications") refresh();
     setTab(s);
     setSelected(null);
     setMobile(false);
@@ -268,7 +272,7 @@ export default function Dashboard({
             <n.icon size={18} />
             {n.name}
             {n.name === "Notifications" && notes.length > 0 && (
-              <small>{notes.filter(n=>!n.read).length}</small>
+              <small>{notes.filter((n) => !n.read).length}</small>
             )}
           </button>
         ))}
@@ -279,7 +283,7 @@ export default function Dashboard({
             </div>
             {[
               "AI Design Studio",
-              "AI Assistant",
+              "AI Design Assistant",
               "AI Cost Estimator",
               "Smart Recommendations",
               "AI Project Insights",
@@ -410,7 +414,8 @@ export default function Dashboard({
                 )}
               </div>
               {tab === "Overview" && (
-                <><WorkspaceInsights role={user.role}/>
+                <>
+                  <WorkspaceInsights role={user.role} />
                   <div className="stats-grid">
                     {[
                       [
@@ -507,7 +512,20 @@ export default function Dashboard({
                               <span className="activity-dot" />
                               <div>
                                 <p>{n.text}</p>
-                                <small>{date(n.created_at)}</small>{!n.read&&<button className="read-notification" onClick={()=>act("/notifications/"+n.id+"/read","PATCH")}>Mark as read</button>}
+                                <small>{date(n.created_at)}</small>
+                                {!n.read && (
+                                  <button
+                                    className="read-notification"
+                                    onClick={() =>
+                                      act(
+                                        "/notifications/" + n.id + "/read",
+                                        "PATCH",
+                                      )
+                                    }
+                                  >
+                                    Mark as read
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))
@@ -945,7 +963,17 @@ export default function Dashboard({
                         <span className="activity-dot" />
                         <div>
                           <p>{n.text}</p>
-                          <small>{date(n.created_at)}</small>{!n.read&&<button className="read-notification" onClick={()=>act("/notifications/"+n.id+"/read","PATCH")}>Mark as read</button>}
+                          <small>{date(n.created_at)}</small>
+                          {!n.read && (
+                            <button
+                              className="read-notification"
+                              onClick={() =>
+                                act("/notifications/" + n.id + "/read", "PATCH")
+                              }
+                            >
+                              Mark as read
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1051,7 +1079,7 @@ export default function Dashboard({
                                           label="Phone"
                                           required={false}
                                           defaultValue={p.phone}
-                                        />
+                                        /><Select name="role" label="Employee role" defaultValue={p.role} options={["MANAGER","WORKER"]}/>
                                       </Form>
                                     ),
                                   })
@@ -1076,7 +1104,9 @@ export default function Dashboard({
                   </article>
                 </>
               )}
-              {tab === "Execution Reports"&&<ExecutionReports/>}{tab === "Activity" && <Activity />}
+              {tab === "System Settings" && <SystemSettings notify={notify} />}
+              {tab === "Execution Reports" && <ExecutionReports />}
+              {tab === "Activity" && <Activity />}
               {["Reports", "Services", "Customers & Enquiries"].includes(
                 tab,
               ) && <AdminPanel tab={tab} notify={notify} />}

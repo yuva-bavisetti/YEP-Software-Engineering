@@ -27,12 +27,19 @@ export default function Public({
   notify: (s: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const [contact, setContact] = useState<Row | null>(null);
+  useEffect(() => {
+    api("/settings/public")
+      .then(setContact)
+      .catch(() => {});
+  }, []);
   const [filter, setFilter] = useState("All");
   const [activeServices, setActiveServices] = useState(serviceNames);
+  const [serviceRows,setServiceRows]=useState<Row[]>([]);
   useEffect(() => {
     api("/services")
       .then((rows: Row[]) => {
-        setActiveServices(rows.map((s) => s.name));
+        setActiveServices(rows.map((s) => s.name));setServiceRows(rows);
       })
       .catch(() => {});
   }, []);
@@ -174,7 +181,7 @@ export default function Public({
             <div className="service-grid">
               {activeServices.slice(0, 4).map((s, i) => (
                 <a
-                  href={"#/services/" + encodeURIComponent(s)}
+                  href={"#/services/" + (serviceRows.find(r=>r.name===s)?.id||encodeURIComponent(s))}
                   className={"service-card service-" + i}
                   key={s}
                 >
@@ -256,7 +263,7 @@ export default function Public({
               ))}
             </div>
           </section>
-          <PublicGallery preview/>
+          <PublicGallery preview />
           <section className="contact-banner">
             <div>
               <span className="eyebrow">LET’S TALK POSSIBILITIES</span>
@@ -269,9 +276,9 @@ export default function Public({
           </section>
         </>
       ) : path.startsWith("/services") ? (
-        <ServiceCatalogue path={path}/>
+        <ServiceCatalogue path={path} />
       ) : path === "/projects" ? (
-        <PublicGallery/>
+        <PublicGallery />
       ) : path === "/about" ? (
         <section className="section public-content">
           <span className="eyebrow">MEET YEP</span>
@@ -336,6 +343,13 @@ export default function Public({
           <div className="two-grid">
             <div>
               <h2>Tell us about your space.</h2>
+              {contact?.email && (
+                <p>
+                  <a href={"mailto:" + contact.email}>{contact.email}</a>
+                </p>
+              )}
+              {contact?.phone && <p>{contact.phone}</p>}
+              {contact?.location && <p>{contact.location}</p>}
               <p>
                 Use this form for a general enquiry. For a project quotation,
                 create an account and submit a project request.

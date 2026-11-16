@@ -309,6 +309,22 @@ def test_complete_end_to_end(env):
                 },
                 method="patch",
             )
+        if ph == 2:
+            phase_milestone = call(
+                a,
+                f"/projects/{pid}/milestones",
+                {
+                    "title": "Finishing verification",
+                    "phase": 2,
+                    "deadline": "2026-12-01",
+                },
+            )
+            call(
+                a,
+                f"/milestones/{phase_milestone['id']}",
+                {"progress": 100},
+                method="patch",
+            )
         call(
             a,
             f"/projects/{pid}/phases/{ph}",
@@ -567,7 +583,9 @@ def test_demo_seed_is_repeatable_and_non_destructive(tmp_path, monkeypatch):
     seed()
     assert counts == {c: db[c].count_documents({}) for c in db.list_collection_names()}
     assert db.projects.find_one()["title"] == "User edited project"
-    assert db.quotes.count_documents({}) == 2
+    assert db.quotes.count_documents({}) == 3
+    assert db.projects.count_documents({}) == 2
+    assert db.portfolio.count_documents({"published": True}) == 1
     assert db.payments.count_documents({}) == 1
 
 

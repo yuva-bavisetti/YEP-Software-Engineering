@@ -176,7 +176,13 @@ class MaterialInput(Model):
     notes: str = Field(default="", max_length=2000)
 
 
+class QualityCheck(Model):
+    label: str = Field(min_length=2, max_length=200)
+    passed: bool
+
+
 class QualityInput(Model):
+    items: list[QualityCheck] = Field(default_factory=list, max_length=50)
     title: str = Field(min_length=3, max_length=200)
     passed: bool
     defects: str = Field(default="", max_length=5000)
@@ -196,6 +202,7 @@ class RequestReply(Model):
 
 
 class EmployeeDetails(Model):
+    role: str | None = Field(default=None, pattern="^(MANAGER|WORKER)$")
     name: str = Field(min_length=2, max_length=100)
     email: EmailAddress
     phone: str = Field(default="", max_length=100)
@@ -221,3 +228,10 @@ class PhaseCreate(Model):
     duration: int = Field(ge=1, le=3650)
     start_date: str = ""
     deadline: str = ""
+
+
+class SystemSettings(Model):
+    business_name: str = Field(min_length=2, max_length=100)
+    email: EmailAddress | None = None
+    phone: str = Field(default="", max_length=100)
+    location: str = Field(min_length=3, max_length=500)

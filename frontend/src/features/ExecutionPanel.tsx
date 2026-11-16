@@ -15,9 +15,14 @@ export default function ExecutionPanel({
 }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [version, setVersion] = useState(0);
+  const [checks, setChecks] = useState([
+    { label: "Surface preparation", passed: false },
+    { label: "Finish consistency", passed: false },
+    { label: "Site clean-up", passed: false },
+  ]);
   const [error, setError] = useState("");
   const executor =
-    ["ADMIN", "MANAGER"].includes(user.role) && project.status !== "Completed";
+    ["ADMIN", "MANAGER"].includes(user.role) && project.status === "Active";
   useEffect(() => {
     setRows([]);
     setError("");
@@ -89,6 +94,57 @@ export default function ExecutionPanel({
                     : `Defects: ${r.defects || "None recorded"}. Corrective action: ${r.corrective_action || "None required"}`}
                 </p>
                 <small>{date(r.created_at)}</small>
+                {r.items?.map((item: Row, i: number) => (
+                  <p key={i}>
+                    {item.passed ? "✓" : "○"} {item.label}
+                  </p>
+                ))}
+                {executor && tab === "Materials" && (
+                  <details>
+                    <summary>Update material availability</summary>
+                    <Form
+                      submit="Update material"
+                      onSubmit={async (f) => {
+                        await api("/materials/" + r.id, "PUT", {
+                          name: f.get("name"),
+                          quantity: Number(f.get("quantity")),
+                          unit: f.get("unit"),
+                          status: f.get("status"),
+                          notes: f.get("notes"),
+                        });
+                        setVersion((v) => v + 1);
+                        notify("Material updated");
+                      }}
+                    >
+                      <Field
+                        name="name"
+                        label="Material name"
+                        defaultValue={r.name}
+                      />
+                      <Field
+                        name="quantity"
+                        label="Quantity"
+                        type="number"
+                        min={0.01}
+                        step="0.01"
+                        defaultValue={r.quantity}
+                      />
+                      <Field name="unit" label="Unit" defaultValue={r.unit} />
+                      <Select
+                        name="status"
+                        label="Availability"
+                        defaultValue={r.status}
+                        options={["Required", "Available", "Shortage"]}
+                      />
+                      <Text
+                        name="notes"
+                        label="Notes"
+                        required={false}
+                        defaultValue={r.notes}
+                      />
+                    </Form>
+                  </details>
+                )}
               </div>
             ))}
             {rows.length === 0 && <p className="muted">No records yet.</p>}
@@ -107,7 +163,11 @@ export default function ExecutionPanel({
                   const data =
                     tab === "Materials"
                       ? { ...obj(f), quantity: Number(f.get("quantity")) }
-                      : { ...obj(f), passed: f.get("passed") === "true" };
+                      : {
+                          ...obj(f),
+                          passed: f.get("passed") === "true",
+                          items: checks,
+                        };
                   await api(
                     "/projects/" +
                       project.id +
@@ -152,6 +212,27 @@ export default function ExecutionPanel({
                         { value: "true", label: "Passed" },
                       ]}
                     />
+                    <fieldset className="wide">
+                      <legend>Quality checklist</legend>
+                      {checks.map((c, i) => (
+                        <label className="checkbox" key={c.label}>
+                          <input
+                            type="checkbox"
+                            checked={c.passed}
+                            onChange={(e) =>
+                              setChecks(
+                                checks.map((item, n) =>
+                                  n === i
+                                    ? { ...item, passed: e.target.checked }
+                                    : item,
+                                ),
+                              )
+                            }
+                          />
+                          {c.label}
+                        </label>
+                      ))}
+                    </fieldset>
                     <Text
                       name="defects"
                       label="Defects found"

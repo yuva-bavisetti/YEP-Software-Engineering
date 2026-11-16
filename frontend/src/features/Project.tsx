@@ -46,7 +46,7 @@ export default function ProjectDetail({
   const [revision, setRevision] = useState(0);
   const [form, setForm] = useState("");
   const executor =
-    ["ADMIN", "MANAGER"].includes(user.role) && p.status !== "Completed";
+    ["ADMIN", "MANAGER"].includes(user.role) && p.status === "Active";
   const load = () => {
     setRevision((v) => v + 1);
     refreshParent();
@@ -79,7 +79,9 @@ export default function ProjectDetail({
     "Quality",
     ...(user.role !== "CUSTOMER" ? ["Materials"] : []),
     "Gallery",
-    ...(user.role==="ADMIN"&&p.status==="Completed"?["Public Portfolio"]:[]),
+    ...(user.role === "ADMIN" && p.status === "Completed"
+      ? ["Public Portfolio"]
+      : []),
     ...(user.role !== "CUSTOMER" ? ["Internal Team Chat"] : []),
     ...(user.role !== "WORKER" ? ["Customer Project Chat"] : []),
     ...(["ADMIN", "CUSTOMER"].includes(user.role) ? ["Payments"] : []),
@@ -100,7 +102,15 @@ export default function ProjectDetail({
         </div>
         <Badge>{p.status}</Badge>
       </div>
-      <div className="notice"><strong>Current phase: </strong>{p.phases.find((ph:Row)=>ph.status==="Active")?(()=>{const ph=p.phases.find((ph:Row)=>ph.status==="Active");return `Phase ${ph.number} · ${ph.title} · ${ph.duration} days · Due ${date(ph.deadline)}`})():"No phase is currently active"}</div>
+      <div className="notice">
+        <strong>Current phase: </strong>
+        {p.phases.find((ph: Row) => ph.status === "Active")
+          ? (() => {
+              const ph = p.phases.find((ph: Row) => ph.status === "Active");
+              return `Phase ${ph.number} · ${ph.title} · ${ph.duration} days · Due ${date(ph.deadline)}`;
+            })()
+          : "No phase is currently active"}
+      </div>
       <div className="project-summary">
         <div>
           <small>Verified progress</small>
@@ -136,7 +146,25 @@ export default function ProjectDetail({
           </button>
         ))}
       </div>
-      {user.role==='ADMIN'&&p.status!=='Completed'&&<Button secondary onClick={async()=>{const note=prompt('Reason for '+(p.status==='On Hold'?'resuming':'pausing')+' this project');if(!note)return;await act('/projects/'+p.id+'/status','PATCH',{status:p.status==='On Hold'?'Active':'On Hold',note});}}>{p.status==='On Hold'?'Resume project':'Place project on hold'}</Button>}
+      {user.role === "ADMIN" && p.status !== "Completed" && (
+        <Button
+          secondary
+          onClick={async () => {
+            const note = prompt(
+              "Reason for " +
+                (p.status === "On Hold" ? "resuming" : "pausing") +
+                " this project",
+            );
+            if (!note) return;
+            await act("/projects/" + p.id + "/status", "PATCH", {
+              status: p.status === "On Hold" ? "Active" : "On Hold",
+              note,
+            });
+          }}
+        >
+          {p.status === "On Hold" ? "Resume project" : "Place project on hold"}
+        </Button>
+      )}
       {error && <div className="error">{error}</div>}
       {tab === "Milestones" && (
         <>
@@ -202,13 +230,54 @@ export default function ProjectDetail({
                     </div>
                     <p>{m.description}</p>
                     <small>
-                      Phase {m.phase} · Due {date(m.deadline)}
+                      Phase {m.phase} · Due {date(m.deadline)}<br/>Last updated {date(m.updated_at||m.created_at)} by {m.last_updated_by_name||"Project team"}
                     </small>
                     <div className="progress-track">
                       <div style={{ width: m.progress + "%" }} />
                     </div>
                     {executor && (
                       <>
+                        <details>
+                          <summary>Edit milestone definition</summary>
+                          <Form
+                            submit="Update milestone"
+                            onSubmit={async (f) => {
+                              await api("/milestones/" + m.id, "PUT", {
+                                ...obj(f),
+                                phase: Number(f.get("phase")),
+                              });
+                              load();
+                              notify("Milestone updated");
+                            }}
+                          >
+                            <Field
+                              name="title"
+                              label="Milestone title"
+                              defaultValue={m.title}
+                            />
+                            <Select
+                              name="phase"
+                              label="Phase"
+                              defaultValue={m.phase}
+                              options={p.phases.map((ph: Row) => ({
+                                value: String(ph.number),
+                                label: ph.title,
+                              }))}
+                            />
+                            <Field
+                              name="deadline"
+                              label="Deadline"
+                              type="date"
+                              defaultValue={m.deadline}
+                            />
+                            <Text
+                              name="description"
+                              label="Description"
+                              required={false}
+                              defaultValue={m.description}
+                            />
+                          </Form>
+                        </details>
                         <Button
                           secondary
                           onClick={() => {
@@ -237,18 +306,21 @@ export default function ProjectDetail({
                             defaultValue={m.progress}
                             onMouseUp={(e) =>
                               act("/milestones/" + m.id, "PATCH", {
-                                progress: Number(e.currentTarget.value),publish:true,
+                                progress: Number(e.currentTarget.value),
+                                publish: true,
                               })
                             }
                             onKeyUp={(e) => {
                               if (e.key.startsWith("Arrow"))
                                 act("/milestones/" + m.id, "PATCH", {
-                                  progress: Number(e.currentTarget.value),publish:true,
+                                  progress: Number(e.currentTarget.value),
+                                  publish: true,
                                 });
                             }}
                             onTouchEnd={(e) =>
                               act("/milestones/" + m.id, "PATCH", {
-                                progress: Number(e.currentTarget.value),publish:true,
+                                progress: Number(e.currentTarget.value),
+                                publish: true,
                               })
                             }
                           />
@@ -265,7 +337,7 @@ export default function ProjectDetail({
               />
             )}
           </div>
-          {executor && p.status !== "Completed" && (
+          {executor && p.status === "Active" && (
             <article className="card">
               <h3>Final quality review</h3>
               <p>
@@ -311,7 +383,57 @@ export default function ProjectDetail({
         </>
       )}
       {tab === "Phases & Team" && (
-        <>{user.role==='ADMIN'&&executor&&<details className="card"><summary>Plan another phase</summary><Form submit="Add planned phase" onSubmit={async f=>{await api('/projects/'+p.id+'/phases','POST',{number:Number(f.get('number')),title:f.get('title'),duration:Number(f.get('duration')),start_date:f.get('start_date'),deadline:f.get('deadline')});load();notify('Phase planned. Publish its quotation before activating it.');}}><Field name="number" label="Phase number" type="number" min={2} defaultValue={Math.max(...p.phases.map((ph:Row)=>ph.number))+1}/><Field name="title" label="Phase name"/><Field name="duration" label="Estimated duration (days)" type="number" min={1}/><Field name="start_date" label="Planned start date" type="date" required={false}/><Field name="deadline" label="Expected end date" type="date" required={false}/></Form></details>}
+        <>
+          {user.role === "ADMIN" && executor && (
+            <details className="card">
+              <summary>Plan another phase</summary>
+              <Form
+                submit="Add planned phase"
+                onSubmit={async (f) => {
+                  await api("/projects/" + p.id + "/phases", "POST", {
+                    number: Number(f.get("number")),
+                    title: f.get("title"),
+                    duration: Number(f.get("duration")),
+                    start_date: f.get("start_date"),
+                    deadline: f.get("deadline"),
+                  });
+                  load();
+                  notify(
+                    "Phase planned. Publish its quotation before activating it.",
+                  );
+                }}
+              >
+                <Field
+                  name="number"
+                  label="Phase number"
+                  type="number"
+                  min={2}
+                  defaultValue={
+                    Math.max(...p.phases.map((ph: Row) => ph.number)) + 1
+                  }
+                />
+                <Field name="title" label="Phase name" />
+                <Field
+                  name="duration"
+                  label="Estimated duration (days)"
+                  type="number"
+                  min={1}
+                />
+                <Field
+                  name="start_date"
+                  label="Planned start date"
+                  type="date"
+                  required={false}
+                />
+                <Field
+                  name="deadline"
+                  label="Expected end date"
+                  type="date"
+                  required={false}
+                />
+              </Form>
+            </details>
+          )}
 
           <div className="two-grid">
             {p.phases.map((ph: Row) => (
@@ -440,12 +562,22 @@ export default function ProjectDetail({
               <Form
                 submit="Create task"
                 onSubmit={async (f) => {
-                  await api("/projects/" + p.id + "/tasks", "POST", obj(f));
+                  await api("/projects/" + p.id + "/tasks", "POST", {...obj(f),phase:Number(f.get("phase"))});
                   setForm("");
                   load();
                 }}
               >
                 <Field label="Task title" name="title" />
+                <Select
+                  name="phase"
+                  label="Task phase"
+                  options={p.phases
+                    .filter((ph: Row) => ph.status !== "Completed")
+                    .map((ph: Row) => ({
+                      value: String(ph.number),
+                      label: ph.title,
+                    }))}
+                />
                 <Select
                   label="Assigned worker"
                   name="worker_id"
@@ -489,7 +621,7 @@ export default function ProjectDetail({
                               title: t.title,
                               description: t.description || "",
                               deadline: t.deadline,
-                              priority: t.priority,
+                              priority: t.priority,phase:t.phase||1,
                               worker_id: e.target.value,
                             })
                           }
@@ -514,7 +646,7 @@ export default function ProjectDetail({
                                 title: t.title,
                                 description: t.description || "",
                                 deadline: e.target.value,
-                                priority: t.priority,
+                                priority: t.priority,phase:t.phase||1,
                                 worker_id: t.worker_id,
                               });
                           }}
@@ -565,7 +697,9 @@ export default function ProjectDetail({
           notify={notify}
         />
       )}
-      {tab==="Public Portfolio"&&<PortfolioSettings project={p} notify={notify}/>}
+      {tab === "Public Portfolio" && (
+        <PortfolioSettings project={p} notify={notify} />
+      )}
       {tab === "Payments" && (
         <Finance project={p} admin={user.role === "ADMIN"} notify={notify} />
       )}
@@ -657,7 +791,29 @@ function Chat({
                   {m.published && <small> Shared with customer</small>}
                 </div>
               )}
-              {m.review_note&&<small>Review: {m.review_note}</small>}{m.channel==='internal'&&m.verification==='Approved'&&!m.published&&['ADMIN','MANAGER'].includes(user.role)&&<Button onClick={async()=>{const text=prompt('Customer update',m.text);if(text===null)return;try{await api('/messages/'+m.id+'/share','POST',{text});await load();notify('Verified evidence shared')}catch(e){notify((e as Error).message)}}}>Share approved photo with customer</Button>}
+              {m.review_note && <small>Review: {m.review_note}</small>}
+              {m.channel === "internal" &&
+                m.verification === "Approved" &&
+                !m.published &&
+                ["ADMIN", "MANAGER"].includes(user.role) && (
+                  <Button
+                    onClick={async () => {
+                      const text = prompt("Customer update", m.text);
+                      if (text === null) return;
+                      try {
+                        await api("/messages/" + m.id + "/share", "POST", {
+                          text,
+                        });
+                        await load();
+                        notify("Verified evidence shared");
+                      } catch (e) {
+                        notify((e as Error).message);
+                      }
+                    }}
+                  >
+                    Share approved photo with customer
+                  </Button>
+                )}
               {m.verification === "Pending" &&
                 ["ADMIN", "MANAGER"].includes(user.role) && (
                   <div className="actions">
@@ -684,14 +840,36 @@ function Chat({
                       <Check size={15} />
                       Approve & share with customer
                     </Button>
-                    <Button secondary onClick={async()=>{try{await api('/messages/'+m.id+'/verify','POST',{approved:true,share:false});await load();notify('Evidence approved; it remains internal until shared.')}catch(e){notify((e as Error).message)}}}>Approve internally</Button>
                     <Button
                       secondary
                       onClick={async () => {
-                        const text=prompt('Correction required for this evidence');if(text===null)return;
                         try {
                           await api("/messages/" + m.id + "/verify", "POST", {
-                            approved: false,text,
+                            approved: true,
+                            share: false,
+                          });
+                          await load();
+                          notify(
+                            "Evidence approved; it remains internal until shared.",
+                          );
+                        } catch (e) {
+                          notify((e as Error).message);
+                        }
+                      }}
+                    >
+                      Approve internally
+                    </Button>
+                    <Button
+                      secondary
+                      onClick={async () => {
+                        const text = prompt(
+                          "Correction required for this evidence",
+                        );
+                        if (text === null) return;
+                        try {
+                          await api("/messages/" + m.id + "/verify", "POST", {
+                            approved: false,
+                            text,
                           });
                           await load();
                         } catch (e) {

@@ -86,9 +86,7 @@ describe("Role workspaces", () => {
         expect(
           screen.queryByRole("button", { name: "Quotations & Payments" }),
         ).toBeNull();
-        expect(
-          screen.queryByRole("button", { name: "Requests" }),
-        ).toBeNull();
+        expect(screen.queryByRole("button", { name: "Requests" })).toBeNull();
         expect(
           vi
             .mocked(api)
@@ -100,17 +98,13 @@ describe("Role workspaces", () => {
           screen.getByRole("button", { name: "AI Design Studio" }),
         ).toBeTruthy();
       if (role === "ADMIN")
-        expect(
-          screen.getByRole("button", { name: "Team" }),
-        ).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Team" })).toBeTruthy();
     },
   );
   it("submits customer request details to Admin without file-form fields", async () => {
     dashboard("CUSTOMER");
     await screen.findByRole("heading", { name: "Hello, Alex." });
-    await userEvent.click(
-      screen.getByRole("button", { name: "New Request" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "New Request" }));
     await userEvent.type(
       screen.getByLabelText("Property location"),
       "Baner, Pune",
@@ -148,14 +142,12 @@ describe("Role workspaces", () => {
     await screen.findByRole("heading", { name: "Hello, Alex." });
     for (const tab of [
       "AI Design Studio",
-      "AI Assistant",
+      "AI Design Assistant",
       "AI Cost Estimator",
       "Smart Recommendations",
       "AI Project Insights",
     ]) {
-      await userEvent.click(
-        screen.getByRole("button", { name: tab }),
-      );
+      await userEvent.click(screen.getByRole("button", { name: tab }));
       expect(screen.getByText(/No AI model is connected/)).toBeTruthy();
       expect(screen.queryByText(/coming soon/i)).toBeNull();
     }
@@ -166,9 +158,7 @@ describe("Role workspaces", () => {
   it("sends a strict inspection payload without the file input name", async () => {
     dashboard("ADMIN");
     await screen.findByRole("heading", { name: "Hello, Alex." });
-    await userEvent.click(
-      screen.getByRole("button", { name: "Requests" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Requests" }));
     await userEvent.click(
       screen.getByRole("button", { name: "Record inspection" }),
     );

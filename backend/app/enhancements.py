@@ -311,3 +311,72 @@ def install(app, ctx):
             ctx.fail(409, "Phase number already exists")
         ctx.audit(u, "phase_planned", pid)
         return ph
+
+    @app.get("/api/admin/customers/{uid}/history")
+    def customer_history(uid: str, u=Depends(ctx.user)):
+        roles(u, "ADMIN")
+        c = ctx.get("users", uid)
+        if c["role"] != "CUSTOMER":
+            ctx.fail(422, "Select a Customer account")
+        return {
+            "customer": ctx.clean(c),
+            "requests": [
+                ctx.clean(r) for r in ctx.db.requests.find({"customer_id": uid})
+            ],
+            "projects": [
+                ctx.clean(p) for p in ctx.db.projects.find({"customer_id": uid})
+            ],
+            "quotations": [
+                ctx.clean(q) for q in ctx.db.quotes.find({"customer_id": uid})
+            ],
+        }
+
+    from .models import SystemSettings
+
+    @app.get("/api/settings/public")
+    def public_settings():
+        s = ctx.db.settings.find_one({"_id": "public"})
+        return (
+            {k: s[k] for k in ("business_name", "email", "phone", "location")}
+            if s
+            else {
+                "business_name": "YEP",
+                "email": None,
+                "phone": "",
+                "location": "Site visits are scheduled after request review.",
+            }
+        )
+
+    @app.put("/api/admin/settings")
+    def settings(d: SystemSettings, u=Depends(ctx.user)):
+        roles(u, "ADMIN")
+        ctx.db.settings.update_one(
+            {"_id": "public"},
+            {
+                "$set": {
+                    **d.model_dump(),
+                    "updated_by": u["id"],
+                    "updated_at": ctx.now(),
+                }
+            },
+            upsert=True,
+        )
+        ctx.audit(u, "system_settings_updated", "public")
+        return {"ok": True}
+
+    @app.put("/api/admin/settings")
+    def update_settings(d: SystemSettings, u=Depends(ctx.user)):
+        roles(u, "ADMIN")
+        ctx.db.settings.update_one(
+            {"_id": "public"},
+            {
+                "$set": {
+                    **d.model_dump(),
+                    "updated_by": u["id"],
+                    "updated_at": ctx.now(),
+                }
+            },
+            upsert=True,
+        )
+        ctx.audit(u, "settings_updated", "public")
+        return {"ok": True}

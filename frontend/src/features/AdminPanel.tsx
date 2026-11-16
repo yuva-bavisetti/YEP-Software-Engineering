@@ -1,5 +1,6 @@
+import CustomerHistory from "./CustomerHistory";
 import { useEffect, useState } from "react";
-import { api, date, money, Row,upload } from "../api";
+import { api, date, money, Row, upload } from "../api";
 import {
   Badge,
   Button,
@@ -22,6 +23,7 @@ export default function AdminPanel({
   const [version, setVersion] = useState(0);
   const [editing, setEditing] = useState<Row | null>(null);
   const [error, setError] = useState("");
+  const [customerId, setCustomerId] = useState("");
   useEffect(() => {
     setData(null);
     setRows([]);
@@ -67,6 +69,8 @@ export default function AdminPanel({
             ["Project status", data.project_status],
             ["Employee workload", data.workload],
             ["Requests by month", data.request_months],
+            ["Monthly project activity", data.project_months || {}],
+            ["Quotation status", data.quotation_status || {}],
           ].map(([title, values]) => (
             <article className="card" key={title as string}>
               <h2>{title as string}</h2>
@@ -114,7 +118,8 @@ export default function AdminPanel({
           submit={editing ? "Save service" : "Add service"}
           close={editing ? () => setEditing(null) : undefined}
           onSubmit={async (f) => {
-            const photo=f.get("image") as File;const image=photo?.size?await upload(photo):null;
+            const photo = f.get("image") as File;
+            const image = photo?.size ? await upload(photo) : null;
             await api(
               "/services" + (editing ? "/" + editing.id : ""),
               editing ? "PUT" : "POST",
@@ -122,7 +127,7 @@ export default function AdminPanel({
                 name: f.get("name"),
                 description: f.get("description"),
                 active: f.get("active") === "true",
-                image_id:image?.id||editing?.image_id||null,
+                image_id: image?.id || editing?.image_id || null,
               },
             );
             setEditing(null);
@@ -150,7 +155,14 @@ export default function AdminPanel({
                   ]
             }
           />
-          <label className="wide">Service photograph<input type="file" name="image" accept="image/png,image/jpeg,image/webp"/></label>
+          <label className="wide">
+            Service photograph
+            <input
+              type="file"
+              name="image"
+              accept="image/png,image/jpeg,image/webp"
+            />
+          </label>
           <Text
             label="Description"
             name="description"
@@ -182,6 +194,7 @@ export default function AdminPanel({
               <th>Email</th>
               <th>Phone</th>
               <th>Address</th>
+              <th>Account / history</th>
             </tr>
           </thead>
           <tbody>
@@ -191,11 +204,32 @@ export default function AdminPanel({
                 <td>{c.email}</td>
                 <td>{c.phone || "—"}</td>
                 <td>{c.address || "—"}</td>
+                <td>
+                  <button onClick={() => setCustomerId(c.id)}>
+                    View history
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api("/users/" + c.id + "/active", "PATCH", {
+                          decision: c.active ? "inactive" : "active",
+                        });
+                        setVersion((v) => v + 1);
+                        notify("Customer account updated");
+                      } catch (e) {
+                        notify((e as Error).message);
+                      }
+                    }}
+                  >
+                    {c.active ? "Deactivate" : "Activate"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </article>
+      {customerId && <CustomerHistory customerId={customerId} />}
       <div className="block-heading">
         <h2>Contact enquiries</h2>
       </div>

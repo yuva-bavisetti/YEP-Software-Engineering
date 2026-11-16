@@ -1,4 +1,4 @@
-import {finishProgress} from "./houseAnimation";
+import { finishProgress } from "./houseAnimation";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 export default function House() {
@@ -28,8 +28,11 @@ export default function House() {
     sun.castShadow = true;
     scene.add(sun);
     const walls: THREE.MeshStandardMaterial[] = [];
-    const finishes:{material:THREE.MeshStandardMaterial;target:THREE.Color}[]=[];
-    const landscaping:THREE.Object3D[]=[];
+    const finishes: {
+      material: THREE.MeshStandardMaterial;
+      target: THREE.Color;
+    }[] = [];
+    const landscaping: THREE.Object3D[] = [];
     const box = (
       x: number,
       y: number,
@@ -42,7 +45,7 @@ export default function House() {
     ) => {
       const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75 });
       if (animated) walls.push(mat);
-      else finishes.push({material:mat,target:new THREE.Color(color)});
+      else finishes.push({ material: mat, target: new THREE.Color(color) });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
       mesh.position.set(x, y, z);
       mesh.castShadow = true;
@@ -73,7 +76,8 @@ export default function House() {
         new THREE.MeshStandardMaterial({ color: 0x526d42 }),
       );
       tree.position.set(x, 1.2, -1.6);
-      group.add(tree);landscaping.push(tree);
+      group.add(tree);
+      landscaping.push(tree);
     }
     for (let i = 0; i < 6; i++) {
       const shrub = new THREE.Mesh(
@@ -81,13 +85,14 @@ export default function House() {
         new THREE.MeshStandardMaterial({ color: 0x627e4f }),
       );
       shrub.position.set(-2.6 + i * 0.4, 0.25, 2.15);
-      group.add(shrub);landscaping.push(shrub);
+      group.add(shrub);
+      landscaping.push(shrub);
     }
     const resize = () => {
       camera.aspect = el.clientWidth / el.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(el.clientWidth, el.clientHeight);
-      renderer.render(scene,camera);
+      renderer.render(scene, camera);
     };
     resize();
     const obs = new ResizeObserver(resize);
@@ -97,13 +102,19 @@ export default function House() {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const animate = () => {
       const t = (performance.now() - start) / 1000;
-      const v=finishProgress(t,reduced);
-      walls.forEach((m,index)=>m.color.copy(new THREE.Color(0xe5e2da)).lerp(new THREE.Color(index?0x7b9f80:0xe3b37b),v));
-      finishes.forEach(({material,target})=>material.color.copy(new THREE.Color(0xd7d4cb)).lerp(target,v));
-      landscaping.forEach(o=>o.scale.setScalar(Math.max(.02,v)));
+      const v = finishProgress(t, reduced);
+      walls.forEach((m, index) =>
+        m.color
+          .copy(new THREE.Color(0xe5e2da))
+          .lerp(new THREE.Color(index ? 0x7b9f80 : 0xe3b37b), v),
+      );
+      finishes.forEach(({ material, target }) =>
+        material.color.copy(new THREE.Color(0xd7d4cb)).lerp(target, v),
+      );
+      landscaping.forEach((o) => o.scale.setScalar(Math.max(0.02, v)));
       group.rotation.y = reduced ? -0.2 : Math.sin(t * 0.17) * 0.13 - 0.2;
       renderer.render(scene, camera);
-      if(!reduced)frame = requestAnimationFrame(animate);
+      if (!reduced) frame = requestAnimationFrame(animate);
     };
     animate();
     return () => {
