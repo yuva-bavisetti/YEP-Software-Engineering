@@ -1,0 +1,94 @@
+import { useEffect, useState } from "react";
+import { api, date, Row } from "../api";
+import { Badge, Empty } from "../components/ui";
+export default function ExecutionReports() {
+  const [data, setData] = useState<Row | null>(null),
+    [error, setError] = useState("");
+  useEffect(() => {
+    api("/reports")
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, []);
+  if (error) return <p className="error">{error}</p>;
+  if (!data?.projects) return <p>Loading execution report…</p>;
+  return (
+    <>
+      <article className="card">
+        <h2>Execution report</h2>
+        <p>
+          Assigned projects, work status and issues. This report contains no
+          quotations or financial information.
+        </p>
+        <div className="chips">
+          {Object.entries(data.task_status).map(([status, count]) => (
+            <Badge key={status}>
+              {status}: {String(count)}
+            </Badge>
+          ))}
+          <Badge>{data.pending_evidence} photos awaiting review</Badge>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Current phase</th>
+                <th>Deadline</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Team</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.projects.map((p: Row) => (
+                <tr key={p.id}>
+                  <td>{p.title}</td>
+                  <td>{p.current_phase}</td>
+                  <td>{date(p.deadline)}</td>
+                  <td>{p.progress}%</td>
+                  <td>{p.status}</td>
+                  <td>{p.workers} workers</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+      <div className="two-grid">
+        <article className="card">
+          <h2>Material shortages</h2>
+          {data.shortages.length ? (
+            data.shortages.map((m: Row) => (
+              <p key={m.id}>
+                {m.name} · {m.quantity} {m.unit}
+                <br />
+                {m.notes}
+              </p>
+            ))
+          ) : (
+            <Empty
+              title="No shortages reported"
+              text="Shortages recorded for your projects appear here."
+            />
+          )}
+        </article>
+        <article className="card">
+          <h2>Team issues</h2>
+          {data.issues.length ? (
+            data.issues.map((m: Row) => (
+              <p key={m.id}>
+                {m.text}
+                <br />
+                <small>
+                  {m.sender_name} · {date(m.created_at)}
+                </small>
+              </p>
+            ))
+          ) : (
+            <p>No work issues reported.</p>
+          )}
+        </article>
+      </div>
+    </>
+  );
+}
