@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+uploads/
+work/
+
+*.tsbuildinfo
+.ruff_cache/
+
+# Local secrets and generated database files
+.env.*
+!.env.example
+*.pem
+*.key
+*.db
+*.sqlite
+*.sqlite3
+mongo-data/
