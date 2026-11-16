@@ -2,6 +2,15 @@
 
 A local Software Engineering portfolio application for building finishing, renovation and project management. Built from scratch in this repository with **React 19, TypeScript, Tailwind CSS 4, Three.js, FastAPI and MongoDB**. No cloud database, paid API, external authentication, payment gateway or Docker is required.
 
+## Get the completed source
+
+The completed implementation is on `codex/complete-yep-requirements`; the initial preservation branch remains available. To clone the completed branch:
+
+```powershell
+git clone --branch codex/complete-yep-requirements https://github.com/yuva-bavisetti/YEP-Software-Engineering.git
+cd YEP-Software-Engineering
+```
+
 ## Run on Windows
 
 Install these prerequisites first:
@@ -93,7 +102,7 @@ All four accounts use **`Demo@12345`**. Passwords are bcrypt-hashed; authenticat
 
 The login page also provides demo account shortcuts. Registration creates **Customer** accounts only. Admin creates employees. These public demo credentials are for a local demonstration, not a public production deployment.
 
-The seed creates a customer request, completed Admin inspection, accepted Phase 1, assigned manager and worker, four milestones, a task, two phase quotations with two-page local sample PDFs, pending and verified progress photographs, both chats, a material requirement, a quality review, and one partial offline payment. The demo project has **₹1,30,000 payable, ₹30,000 paid and ₹1,00,000 remaining**. Photographs are locally generated room **illustrations**, not claims of real completed work. Re-running `seed.py` preserves existing records and credentials.
+The seed creates an active customer request, completed Admin inspection, accepted Phase 1, assigned manager and worker, four milestones, a task, two phase quotations with two-page local sample PDFs, pending and verified progress photographs, both chats, a material requirement, a quality review, and one partial offline payment. The active **Morgan residence** demo project has **₹1,30,000 payable, ₹30,000 paid and ₹1,00,000 remaining**. A separate **Completed studio refresh · Demo** project demonstrates completed milestones, verified photos, feedback and public portfolio publishing. Photographs are locally generated room **illustrations**, not claims of real completed work. Re-running `seed.py` preserves existing records and credentials.
 
 ## Implemented workflow
 
@@ -109,13 +118,13 @@ The seed creates a customer request, completed Admin inspection, accepted Phase 
 10. Admin records offline-verified instalments with date, method, reference, verification details and an idempotency key. Customers see payable/paid/balance and payment history. Audited reversals retain the original record; there is no payment deletion or online gateway.
 11. Admin/manager record materials, shortages, quality checks, defects and corrective actions. Completion requires all phases and milestones complete, all tasks complete, and a passed latest quality inspection. Customers can then submit feedback.
 
-Public pages include Home, Services and service details, Projects (clearly labelled concept studies), About, How It Works and Contact. Contact submissions appear in Admin's enquiries. The homepage contains a local procedural animated Three.js house with neutral-to-finished colours, windows, door and landscaping, a WebGL fallback, reduced-motion support and a separately loaded 3D bundle.
+Public pages include Home, Services and service details, Projects (published completed database projects and verified photographs), About, How It Works and Contact. Contact submissions appear in Admin's enquiries. The homepage contains a local procedural animated Three.js house with neutral-to-finished colours, windows, door and landscaping, a WebGL fallback, reduced-motion support and a separately loaded 3D bundle.
 
 All four workspaces include their permitted projects, role-specific navigation, notifications and profiles. Admin additionally manages employee activation, services, customers, enquiries, audit history and database-backed reports. Project galleries respect the same channel/file permissions as their source messages.
 
 ### AI interfaces
 
-Customer **AI Design Studio, AI Assistant, AI Cost Estimator, Smart Recommendations and AI Project Insights** contain their own inputs, upload/preview controls and setup panels. They explicitly explain that no provider is connected. Selecting colours affects the selected palette only; uploaded images remain original. No AI results, cost estimates, chat answers or recommendations are fabricated. No external AI API or key is used. These are newly recreated interfaces; no old source was available to preserve.
+Customer **AI Design Studio, AI Design Assistant, AI Cost Estimator, Smart Recommendations and AI Project Insights** contain their own inputs, upload/preview controls and setup panels. They explicitly explain that no provider is connected. Selecting colours affects the selected palette only; uploaded images remain original. No AI results, cost estimates, chat answers or recommendations are fabricated. No external AI API or key is used. These are newly recreated interfaces; no old source was available to preserve.
 
 ### Financial rules
 
@@ -151,7 +160,7 @@ frontend/
 scripts/                 Windows and Unix setup/start/verification scripts
 ```
 
-See `docs/ARCHITECTURE.md`, `docs/DEMO.md` and `docs/TESTING.md` for the database, permissions, presentation walkthrough and verification limits. Interactive OpenAPI documentation is generated by FastAPI at `/docs`; `/openapi.json` describes every endpoint and request model.
+See the current root documents: [requirements audit](REQUIREMENTS_AUDIT.md), [test results](TEST_RESULTS.md), [architecture](ARCHITECTURE.md), [API reference](API_DOCUMENTATION.md), [database design](DATABASE_DESIGN.md), [demo guide](DEMO_GUIDE.md) and [known limitations](KNOWN_LIMITATIONS.md). The original `docs/` reports remain as baseline history. Interactive OpenAPI documentation is generated by FastAPI at `/docs`; `/openapi.json` describes every endpoint and request model.
 
 ## Tests and production build
 
@@ -198,4 +207,14 @@ Uploaded files are retained by reset; old unreferenced files are not automatical
 
 The Linux workspace passed the API/permission tests, frontend interaction tests and TypeScript production build. MongoDB was not available here and the official binary/repository downloads returned HTTP 403, so actual disk persistence and restart verification were **not executed**. The browser preview relay also failed to start, so WebGL rendering, responsive layout and real browser flows remain **unverified**. Windows scripts are provided but were **not executed on Windows**. Run the real-MongoDB verification and presentation walkthrough on your laptop before your university demonstration.
 
-This is a local portfolio implementation, not a hardened public production service: there is no email verification, password recovery, background job queue, malware scanner or external monitoring. See the architecture notes for atomic-write guarantees and remaining multi-document failure boundaries. The public gallery uses illustrative studies until you supply a portfolio of approved real projects. AI processing is intentionally unintegrated.
+This is a local portfolio implementation, not a hardened public production service: there is no email verification, password recovery, background job queue, malware scanner or external monitoring. See the architecture notes for atomic-write guarantees and remaining multi-document failure boundaries. The public gallery reads completed projects explicitly published by Admin. The seed adds a separate completed project with clearly labelled demonstration illustrations and feedback; these are not claims of real client work. AI processing is intentionally unintegrated.
+
+## Completion update
+
+The existing application has been extended in place. Added: completed-project portfolio publishing/category filters/feedback, managed service images and stored descriptions, scoped dashboard activity/current-phase/worker-instruction views, manager execution reports, material edits, structured quality checklists, planned phases and validated transitions, milestone definition edits and verified chat updates, read notifications, customer history, employee role editing and public contact settings. No external AI integration was added.
+
+Business writes now use a renewable MongoDB lease, compare-and-set updates and idempotent recovery of derived records. Competing writes return a retryable 409; after a crashed process the lease expires in 30 seconds. Source receipts and decisions remain authoritative. This does not turn standalone MongoDB into cross-collection ACID transactions. See architecture/limitations for the precise guarantees.
+
+A later phase must have its quotation published and preceding phases completed before activation. Add at least one milestone to each phase; verify all its milestones and finish its tasks before completion. New phase numbers are not capped at 100. Legacy tasks without a stored phase are treated as Phase 1.
+
+The automated acceptance matrix contains all 42 specified scenarios. Test results distinguish actual API/component checks from the unavailable real-MongoDB, Windows and browser/WebGL checks; see TEST_RESULTS.md.

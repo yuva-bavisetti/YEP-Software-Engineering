@@ -1,3 +1,5 @@
+> Baseline document retained from the initial implementation. For current behavior and verification, read [DEMO_GUIDE.md](../DEMO_GUIDE.md).
+
 # University presentation walkthrough
 
 Start MongoDB, run setup and start both servers. Use separate browser profiles/private windows for simultaneous roles, or sign out before changing accounts. Cookies are intentionally shared by tabs on the same browser profile.

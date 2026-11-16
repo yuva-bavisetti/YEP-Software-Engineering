@@ -420,3 +420,47 @@ describe("Execution and administration", () => {
     expect(await screen.findByText(/MongoDB is unavailable/)).toBeTruthy();
   });
 });
+
+it("toggles public mobile navigation and closes it when a route is selected", async () => {
+  render(<Public path="/" go={vi.fn()} user={null} notify={notify} />);
+  const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+  await userEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("navigation").classList.contains("open")).toBe(true);
+  await userEvent.click(screen.getByRole("link", { name: "Services" }));
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+});
+
+it("marks only the selected notification read through its protected endpoint", async () => {
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "/projects") return [p];
+    if (path === "/notifications")
+      return [
+        {
+          id: "n1",
+          text: "A project update is ready",
+          created_at: "2026-11-16",
+          read: false,
+        },
+      ];
+    if (path === "/services") return [{ name: "Interior painting" }];
+    return [];
+  });
+  render(
+    <Dashboard
+      user={{ ...user, role: "CUSTOMER" }}
+      setUser={vi.fn()}
+      go={vi.fn()}
+      notify={notify}
+    />,
+  );
+  await screen.findByRole("heading", { name: "Hello, Manager." });
+  await userEvent.click(screen.getByRole("button", { name: "Mark as read" }));
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith(
+      "/notifications/n1/read",
+      "PATCH",
+      undefined,
+    ),
+  );
+});

@@ -230,7 +230,10 @@ export default function ProjectDetail({
                     </div>
                     <p>{m.description}</p>
                     <small>
-                      Phase {m.phase} · Due {date(m.deadline)}<br/>Last updated {date(m.updated_at||m.created_at)} by {m.last_updated_by_name||"Project team"}
+                      Phase {m.phase} · Due {date(m.deadline)}
+                      <br />
+                      Last updated {date(m.updated_at || m.created_at)} by{" "}
+                      {m.last_updated_by_name || "Project team"}
                     </small>
                     <div className="progress-track">
                       <div style={{ width: m.progress + "%" }} />
@@ -562,7 +565,10 @@ export default function ProjectDetail({
               <Form
                 submit="Create task"
                 onSubmit={async (f) => {
-                  await api("/projects/" + p.id + "/tasks", "POST", {...obj(f),phase:Number(f.get("phase"))});
+                  await api("/projects/" + p.id + "/tasks", "POST", {
+                    ...obj(f),
+                    phase: Number(f.get("phase")),
+                  });
                   setForm("");
                   load();
                 }}
@@ -621,7 +627,8 @@ export default function ProjectDetail({
                               title: t.title,
                               description: t.description || "",
                               deadline: t.deadline,
-                              priority: t.priority,phase:t.phase||1,
+                              priority: t.priority,
+                              phase: t.phase || 1,
                               worker_id: e.target.value,
                             })
                           }
@@ -646,7 +653,8 @@ export default function ProjectDetail({
                                 title: t.title,
                                 description: t.description || "",
                                 deadline: e.target.value,
-                                priority: t.priority,phase:t.phase||1,
+                                priority: t.priority,
+                                phase: t.phase || 1,
                                 worker_id: t.worker_id,
                               });
                           }}

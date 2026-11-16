@@ -1,3 +1,5 @@
+> Baseline document retained from the initial implementation. For current behavior and verification, read [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 # Architecture and security
 
 YEP is a modular monolith: one React/Vite client, one FastAPI application, one local MongoDB database and one private local upload directory. Backend routes orchestrate workflow logic; validation and authorization are independent modules. No microservices or cloud storage are required.

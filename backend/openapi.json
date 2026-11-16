@@ -2184,6 +2184,477 @@
           }
         }
       }
+    },
+    "/api/dashboard": {
+      "get": {
+        "summary": "Dashboard",
+        "operationId": "dashboard_api_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "summary": "Reports",
+        "operationId": "reports_api_reports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/{mid}": {
+      "put": {
+        "summary": "Edit Material",
+        "operationId": "edit_material_api_materials__mid__put",
+        "parameters": [
+          {
+            "name": "mid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Mid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{pid}/status": {
+      "patch": {
+        "summary": "Status",
+        "operationId": "status_api_projects__pid__status_patch",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectStatusInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/projects": {
+      "get": {
+        "summary": "Portfolio",
+        "operationId": "portfolio_api_public_projects_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{pid}/portfolio": {
+      "get": {
+        "summary": "Portfolio Settings",
+        "operationId": "portfolio_settings_api_projects__pid__portfolio_get",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Publish Portfolio",
+        "operationId": "publish_portfolio_api_projects__pid__portfolio_put",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/projects/{pid}/photos/{fid}": {
+      "get": {
+        "summary": "Portfolio Photo",
+        "operationId": "portfolio_photo_api_public_projects__pid__photos__fid__get",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/services/{sid}/image": {
+      "get": {
+        "summary": "Service Image",
+        "operationId": "service_image_api_public_services__sid__image_get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{pid}/phases": {
+      "post": {
+        "summary": "Plan Phase",
+        "operationId": "plan_phase_api_projects__pid__phases_post",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhaseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/customers/{uid}/history": {
+      "get": {
+        "summary": "Customer History",
+        "operationId": "customer_history_api_admin_customers__uid__history_get",
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Uid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/public": {
+      "get": {
+        "summary": "Public Settings",
+        "operationId": "public_settings_api_settings_public_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings": {
+      "put": {
+        "summary": "Update Settings",
+        "operationId": "update_settings_api_admin_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2327,6 +2798,18 @@
       },
       "EmployeeDetails": {
         "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(MANAGER|WORKER)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
           "name": {
             "type": "string",
             "maxLength": 100,
@@ -2663,6 +3146,46 @@
         ],
         "title": "PaymentInput"
       },
+      "PhaseCreate": {
+        "properties": {
+          "number": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 2.0,
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Title"
+          },
+          "duration": {
+            "type": "integer",
+            "maximum": 3650.0,
+            "minimum": 1.0,
+            "title": "Duration"
+          },
+          "start_date": {
+            "type": "string",
+            "title": "Start Date",
+            "default": ""
+          },
+          "deadline": {
+            "type": "string",
+            "title": "Deadline",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "number",
+          "title",
+          "duration"
+        ],
+        "title": "PhaseCreate"
+      },
       "PhaseInput": {
         "properties": {
           "title": {
@@ -2697,6 +3220,56 @@
           "status"
         ],
         "title": "PhaseInput"
+      },
+      "PortfolioInput": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 10,
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Category"
+          },
+          "file_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "File Ids"
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published",
+            "default": true
+          },
+          "show_feedback": {
+            "type": "boolean",
+            "title": "Show Feedback",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "category",
+          "file_ids"
+        ],
+        "title": "PortfolioInput"
       },
       "Profile": {
         "properties": {
@@ -2752,6 +3325,11 @@
             "maximum": 100.0,
             "minimum": 0.0,
             "title": "Progress"
+          },
+          "publish": {
+            "type": "boolean",
+            "title": "Publish",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -2801,8 +3379,59 @@
         ],
         "title": "ProjectInput"
       },
+      "ProjectStatusInput": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "pattern": "^(Active|On Hold)$",
+            "title": "Status"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "note"
+        ],
+        "title": "ProjectStatusInput"
+      },
+      "QualityCheck": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Label"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "passed"
+        ],
+        "title": "QualityCheck"
+      },
       "QualityInput": {
         "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QualityCheck"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Items"
+          },
           "title": {
             "type": "string",
             "maxLength": 200,
@@ -2838,7 +3467,7 @@
         "properties": {
           "phase": {
             "type": "integer",
-            "maximum": 100.0,
+            "maximum": 2147483647.0,
             "minimum": 1.0,
             "title": "Phase"
           },
@@ -3097,6 +3726,17 @@
       },
       "ServiceInput": {
         "properties": {
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id"
+          },
           "name": {
             "type": "string",
             "maxLength": 100,
@@ -3123,8 +3763,57 @@
         ],
         "title": "ServiceInput"
       },
+      "SystemSettings": {
+        "properties": {
+          "business_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Business Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254,
+                "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Phone",
+            "default": ""
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Location"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "business_name",
+          "location"
+        ],
+        "title": "SystemSettings"
+      },
       "TaskInput": {
         "properties": {
+          "phase": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Phase",
+            "default": 1
+          },
           "title": {
             "type": "string",
             "maxLength": 200,

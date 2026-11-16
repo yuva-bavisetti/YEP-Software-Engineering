@@ -252,7 +252,10 @@ export default function Dashboard({
     });
   return (
     <div className="app-shell">
-      <aside className={mobile ? "sidebar open" : "sidebar"}>
+      <aside
+        id="workspace-navigation"
+        className={mobile ? "sidebar open" : "sidebar"}
+      >
         <a className="logo" href="#/">
           yep<span>®</span>
         </a>
@@ -332,6 +335,8 @@ export default function Dashboard({
             className="mobile-menu"
             onClick={() => setMobile(!mobile)}
             aria-label="Toggle sidebar"
+            aria-expanded={mobile}
+            aria-controls="workspace-navigation"
           >
             <Menu />
           </button>
@@ -1079,7 +1084,13 @@ export default function Dashboard({
                                           label="Phone"
                                           required={false}
                                           defaultValue={p.phone}
-                                        /><Select name="role" label="Employee role" defaultValue={p.role} options={["MANAGER","WORKER"]}/>
+                                        />
+                                        <Select
+                                          name="role"
+                                          label="Employee role"
+                                          defaultValue={p.role}
+                                          options={["MANAGER", "WORKER"]}
+                                        />
                                       </Form>
                                     ),
                                   })

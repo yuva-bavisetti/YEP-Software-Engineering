@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
-Write-Host 'YEP local setup — Python 3.12+, Node 22+ and MongoDB Community must be installed.'
+Write-Host 'YEP local setup - Python 3.12+, Node 22+ and MongoDB Community must be installed.'
 if (!(Test-Path '.venv\Scripts\python.exe')) {
     py -3 -m venv .venv
     if ($LASTEXITCODE -ne 0) { throw 'Could not create Python virtual environment.' }

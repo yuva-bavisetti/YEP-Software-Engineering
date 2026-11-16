@@ -1,3 +1,5 @@
+> Baseline document retained from the initial implementation. For current behavior and verification, read [TEST_RESULTS.md](../TEST_RESULTS.md).
+
 # Verification report
 
 Verified in the Linux build workspace on 16 November 2026 using Python 3.12.14 and Node 24.22.1.

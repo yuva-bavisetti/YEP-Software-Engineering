@@ -35,11 +35,12 @@ export default function Public({
   }, []);
   const [filter, setFilter] = useState("All");
   const [activeServices, setActiveServices] = useState(serviceNames);
-  const [serviceRows,setServiceRows]=useState<Row[]>([]);
+  const [serviceRows, setServiceRows] = useState<Row[]>([]);
   useEffect(() => {
     api("/services")
       .then((rows: Row[]) => {
-        setActiveServices(rows.map((s) => s.name));setServiceRows(rows);
+        setActiveServices(rows.map((s) => s.name));
+        setServiceRows(rows);
       })
       .catch(() => {});
   }, []);
@@ -65,7 +66,7 @@ export default function Public({
         <a href="#/" className="logo">
           yep<span>®</span>
         </a>
-        <nav className={menu ? "open" : ""}>
+        <nav id="public-navigation" className={menu ? "open" : ""}>
           {nav.map((n, i) => (
             <a
               key={n}
@@ -83,6 +84,8 @@ export default function Public({
         <button
           className="mobile-menu"
           aria-label="Toggle navigation"
+          aria-expanded={menu}
+          aria-controls="public-navigation"
           onClick={() => setMenu(!menu)}
         >
           <Menu />
@@ -181,7 +184,11 @@ export default function Public({
             <div className="service-grid">
               {activeServices.slice(0, 4).map((s, i) => (
                 <a
-                  href={"#/services/" + (serviceRows.find(r=>r.name===s)?.id||encodeURIComponent(s))}
+                  href={
+                    "#/services/" +
+                    (serviceRows.find((r) => r.name === s)?.id ||
+                      encodeURIComponent(s))
+                  }
                   className={"service-card service-" + i}
                   key={s}
                 >
