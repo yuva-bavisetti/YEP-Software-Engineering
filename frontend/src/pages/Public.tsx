@@ -1,3 +1,5 @@
+import PublicGallery from "../features/PublicGallery";
+import ServiceCatalogue from "../features/ServiceCatalogue";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -172,7 +174,7 @@ export default function Public({
             <div className="service-grid">
               {activeServices.slice(0, 4).map((s, i) => (
                 <a
-                  href={"#/services/" + i}
+                  href={"#/services/" + encodeURIComponent(s)}
                   className={"service-card service-" + i}
                   key={s}
                 >
@@ -254,6 +256,7 @@ export default function Public({
               ))}
             </div>
           </section>
+          <PublicGallery preview/>
           <section className="contact-banner">
             <div>
               <span className="eyebrow">LET’S TALK POSSIBILITIES</span>
@@ -266,92 +269,9 @@ export default function Public({
           </section>
         </>
       ) : path.startsWith("/services") ? (
-        <section className="section public-content">
-          <span className="eyebrow">EXPERTISE IN EVERY FINISH</span>
-          <h1>
-            {path.split("/")[2]
-              ? activeServices[Number(path.split("/")[2])]
-              : "Services for every space."}
-          </h1>
-          <p>
-            Careful preparation. Quality materials. A finish that feels like
-            you.
-          </p>
-          <div className="three-grid">
-            {(path.split("/")[2]
-              ? [activeServices[Number(path.split("/")[2])]]
-              : activeServices
-            )
-              .filter(Boolean)
-              .map((s, i) => (
-                <article className="card" key={s}>
-                  <Paintbrush className="green" />
-                  <h2>{s}</h2>
-                  <p>
-                    From site inspection and material selection to surface
-                    preparation and final quality checks, our team manages every
-                    stage of your {s.toLowerCase()} project.
-                  </p>
-                  <p>
-                    Scope and pricing are confirmed by an Admin after an on-site
-                    inspection. You approve the initial quotation before work
-                    begins.
-                  </p>
-                  <a href={"#/services/" + (path.split("/")[2] || i)}>
-                    Service details <ArrowUpRight size={16} />
-                  </a>
-                </article>
-              ))}
-          </div>
-        </section>
+        <ServiceCatalogue path={path}/>
       ) : path === "/projects" ? (
-        <section className="section public-content">
-          <span className="eyebrow">THE POSSIBILITIES</span>
-          <h1>Spaces with a new story.</h1>
-          <p>
-            Illustrative design studies for the portfolio demo. These are not
-            claims of completed client work.
-          </p>
-          <div className="tabs">
-            {["All", "Painting", "Renovation", "Flooring"].map((s) => (
-              <button
-                className={filter === s ? "active" : ""}
-                onClick={() => setFilter(s)}
-                key={s}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <div className="three-grid">
-            {["Painting", "Renovation", "Flooring"]
-              .filter((s) => filter === "All" || s === filter)
-              .map((s, i) => (
-                <article className={"service-card service-" + i} key={s}>
-                  <div className="room-art">
-                    <div />
-                    <span />
-                  </div>
-                  <div className="pad">
-                    <Badge>Concept study · {s}</Badge>
-                    <h3>
-                      {
-                        [
-                          "A warmer welcome",
-                          "A fresh perspective",
-                          "Grounded in comfort",
-                        ][i]
-                      }
-                    </h3>
-                    <p>
-                      A considered palette and a thoughtful finish bring new
-                      life to a familiar space.
-                    </p>
-                  </div>
-                </article>
-              ))}
-          </div>
-        </section>
+        <PublicGallery/>
       ) : path === "/about" ? (
         <section className="section public-content">
           <span className="eyebrow">MEET YEP</span>

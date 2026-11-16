@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, date, money, Row } from "../api";
+import { api, date, money, Row,upload } from "../api";
 import {
   Badge,
   Button,
@@ -114,6 +114,7 @@ export default function AdminPanel({
           submit={editing ? "Save service" : "Add service"}
           close={editing ? () => setEditing(null) : undefined}
           onSubmit={async (f) => {
+            const photo=f.get("image") as File;const image=photo?.size?await upload(photo):null;
             await api(
               "/services" + (editing ? "/" + editing.id : ""),
               editing ? "PUT" : "POST",
@@ -121,6 +122,7 @@ export default function AdminPanel({
                 name: f.get("name"),
                 description: f.get("description"),
                 active: f.get("active") === "true",
+                image_id:image?.id||editing?.image_id||null,
               },
             );
             setEditing(null);
@@ -148,6 +150,7 @@ export default function AdminPanel({
                   ]
             }
           />
+          <label className="wide">Service photograph<input type="file" name="image" accept="image/png,image/jpeg,image/webp"/></label>
           <Text
             label="Description"
             name="description"

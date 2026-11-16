@@ -1,3 +1,5 @@
+import WorkspaceInsights from "./WorkspaceInsights";
+import ExecutionReports from "./ExecutionReports";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -147,9 +149,11 @@ export default function Dashboard({
           { name: "Customers & Enquiries", icon: Users },
         ]
       : []),
+    ...(user.role==="MANAGER"?[{name:"Execution Reports",icon:Layers}]:[]),
     { name: "Profile", icon: Users },
   ];
   const selectTab = (s: string) => {
+    if(s==="Notifications")refresh();
     setTab(s);
     setSelected(null);
     setMobile(false);
@@ -264,7 +268,7 @@ export default function Dashboard({
             <n.icon size={18} />
             {n.name}
             {n.name === "Notifications" && notes.length > 0 && (
-              <small>{notes.length}</small>
+              <small>{notes.filter(n=>!n.read).length}</small>
             )}
           </button>
         ))}
@@ -406,7 +410,7 @@ export default function Dashboard({
                 )}
               </div>
               {tab === "Overview" && (
-                <>
+                <><WorkspaceInsights role={user.role}/>
                   <div className="stats-grid">
                     {[
                       [
@@ -503,7 +507,7 @@ export default function Dashboard({
                               <span className="activity-dot" />
                               <div>
                                 <p>{n.text}</p>
-                                <small>{date(n.created_at)}</small>
+                                <small>{date(n.created_at)}</small>{!n.read&&<button className="read-notification" onClick={()=>act("/notifications/"+n.id+"/read","PATCH")}>Mark as read</button>}
                               </div>
                             </div>
                           ))
@@ -941,7 +945,7 @@ export default function Dashboard({
                         <span className="activity-dot" />
                         <div>
                           <p>{n.text}</p>
-                          <small>{date(n.created_at)}</small>
+                          <small>{date(n.created_at)}</small>{!n.read&&<button className="read-notification" onClick={()=>act("/notifications/"+n.id+"/read","PATCH")}>Mark as read</button>}
                         </div>
                       </div>
                     ))
@@ -1072,7 +1076,7 @@ export default function Dashboard({
                   </article>
                 </>
               )}
-              {tab === "Activity" && <Activity />}
+              {tab === "Execution Reports"&&<ExecutionReports/>}{tab === "Activity" && <Activity />}
               {["Reports", "Services", "Customers & Enquiries"].includes(
                 tab,
               ) && <AdminPanel tab={tab} notify={notify} />}

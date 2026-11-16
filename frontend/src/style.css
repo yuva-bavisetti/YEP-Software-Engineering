@@ -2658,3 +2658,4 @@ summary {
   gap: 6px;
   align-items: center;
 }
+.portfolio-cover{width:100%;height:240px;object-fit:cover}.photo-strip{display:flex;gap:10px;flex-wrap:wrap}.photo-strip img{width:80px;height:65px;object-fit:cover;border-radius:5px}.photo-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.photo-choices label{border:1px solid #dce5d1;padding:12px;border-radius:6px}.photo-choices img{width:100%;height:110px;object-fit:cover}.photo-choices input{width:auto;align-self:flex-start}.insights{margin-bottom:24px}.read-notification{display:block;font-size:10px;text-decoration:underline;color:#4e723e;margin-top:8px}.record-row .form-grid{margin-top:20px}@media(max-width:540px){.photo-choices{grid-template-columns:1fr 1fr}.portfolio-cover{height:200px}}

@@ -1,3 +1,4 @@
+import PortfolioSettings from "./PortfolioSettings";
 import {
   ArrowUpRight,
   Check,
@@ -78,6 +79,7 @@ export default function ProjectDetail({
     "Quality",
     ...(user.role !== "CUSTOMER" ? ["Materials"] : []),
     "Gallery",
+    ...(user.role==="ADMIN"&&p.status==="Completed"?["Public Portfolio"]:[]),
     ...(user.role !== "CUSTOMER" ? ["Internal Team Chat"] : []),
     ...(user.role !== "WORKER" ? ["Customer Project Chat"] : []),
     ...(["ADMIN", "CUSTOMER"].includes(user.role) ? ["Payments"] : []),
@@ -98,6 +100,7 @@ export default function ProjectDetail({
         </div>
         <Badge>{p.status}</Badge>
       </div>
+      <div className="notice"><strong>Current phase: </strong>{p.phases.find((ph:Row)=>ph.status==="Active")?(()=>{const ph=p.phases.find((ph:Row)=>ph.status==="Active");return `Phase ${ph.number} · ${ph.title} · ${ph.duration} days · Due ${date(ph.deadline)}`})():"No phase is currently active"}</div>
       <div className="project-summary">
         <div>
           <small>Verified progress</small>
@@ -133,6 +136,7 @@ export default function ProjectDetail({
           </button>
         ))}
       </div>
+      {user.role==='ADMIN'&&p.status!=='Completed'&&<Button secondary onClick={async()=>{const note=prompt('Reason for '+(p.status==='On Hold'?'resuming':'pausing')+' this project');if(!note)return;await act('/projects/'+p.id+'/status','PATCH',{status:p.status==='On Hold'?'Active':'On Hold',note});}}>{p.status==='On Hold'?'Resume project':'Place project on hold'}</Button>}
       {error && <div className="error">{error}</div>}
       {tab === "Milestones" && (
         <>
@@ -233,18 +237,18 @@ export default function ProjectDetail({
                             defaultValue={m.progress}
                             onMouseUp={(e) =>
                               act("/milestones/" + m.id, "PATCH", {
-                                progress: Number(e.currentTarget.value),
+                                progress: Number(e.currentTarget.value),publish:true,
                               })
                             }
                             onKeyUp={(e) => {
                               if (e.key.startsWith("Arrow"))
                                 act("/milestones/" + m.id, "PATCH", {
-                                  progress: Number(e.currentTarget.value),
+                                  progress: Number(e.currentTarget.value),publish:true,
                                 });
                             }}
                             onTouchEnd={(e) =>
                               act("/milestones/" + m.id, "PATCH", {
-                                progress: Number(e.currentTarget.value),
+                                progress: Number(e.currentTarget.value),publish:true,
                               })
                             }
                           />
@@ -307,7 +311,8 @@ export default function ProjectDetail({
         </>
       )}
       {tab === "Phases & Team" && (
-        <>
+        <>{user.role==='ADMIN'&&executor&&<details className="card"><summary>Plan another phase</summary><Form submit="Add planned phase" onSubmit={async f=>{await api('/projects/'+p.id+'/phases','POST',{number:Number(f.get('number')),title:f.get('title'),duration:Number(f.get('duration')),start_date:f.get('start_date'),deadline:f.get('deadline')});load();notify('Phase planned. Publish its quotation before activating it.');}}><Field name="number" label="Phase number" type="number" min={2} defaultValue={Math.max(...p.phases.map((ph:Row)=>ph.number))+1}/><Field name="title" label="Phase name"/><Field name="duration" label="Estimated duration (days)" type="number" min={1}/><Field name="start_date" label="Planned start date" type="date" required={false}/><Field name="deadline" label="Expected end date" type="date" required={false}/></Form></details>}
+
           <div className="two-grid">
             {p.phases.map((ph: Row) => (
               <article className="card" key={ph.number}>
@@ -340,6 +345,7 @@ export default function ProjectDetail({
                       <Select
                         label="Status"
                         name="status"
+                        defaultValue={ph.status}
                         options={["Planned", "Active", "Completed"]}
                       />
                       <Field
@@ -559,6 +565,7 @@ export default function ProjectDetail({
           notify={notify}
         />
       )}
+      {tab==="Public Portfolio"&&<PortfolioSettings project={p} notify={notify}/>}
       {tab === "Payments" && (
         <Finance project={p} admin={user.role === "ADMIN"} notify={notify} />
       )}
@@ -650,6 +657,7 @@ function Chat({
                   {m.published && <small> Shared with customer</small>}
                 </div>
               )}
+              {m.review_note&&<small>Review: {m.review_note}</small>}{m.channel==='internal'&&m.verification==='Approved'&&!m.published&&['ADMIN','MANAGER'].includes(user.role)&&<Button onClick={async()=>{const text=prompt('Customer update',m.text);if(text===null)return;try{await api('/messages/'+m.id+'/share','POST',{text});await load();notify('Verified evidence shared')}catch(e){notify((e as Error).message)}}}>Share approved photo with customer</Button>}
               {m.verification === "Pending" &&
                 ["ADMIN", "MANAGER"].includes(user.role) && (
                   <div className="actions">
@@ -676,12 +684,14 @@ function Chat({
                       <Check size={15} />
                       Approve & share with customer
                     </Button>
+                    <Button secondary onClick={async()=>{try{await api('/messages/'+m.id+'/verify','POST',{approved:true,share:false});await load();notify('Evidence approved; it remains internal until shared.')}catch(e){notify((e as Error).message)}}}>Approve internally</Button>
                     <Button
                       secondary
                       onClick={async () => {
+                        const text=prompt('Correction required for this evidence');if(text===null)return;
                         try {
                           await api("/messages/" + m.id + "/verify", "POST", {
-                            approved: false,
+                            approved: false,text,
                           });
                           await load();
                         } catch (e) {

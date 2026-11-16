@@ -26,8 +26,8 @@ def project_access(u, p):
 def execution(u, p):
     roles(u, "ADMIN", "MANAGER")
     project_access(u, p)
-    if p["status"] == "Completed":
-        fail(409, "Completed projects are read-only")
+    if p["status"] != "Active":
+        fail(409, "Project execution requires an active project")
 
 
 def financial(u, customer):

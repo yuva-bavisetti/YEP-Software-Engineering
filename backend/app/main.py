@@ -1,3 +1,5 @@
+from .recovery import recover
+from .assets import validate_asset
 from .quotations import cents, quotation_total
 from .models import RequestReply
 from .permissions import (
@@ -53,6 +55,7 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app):
     init_indexes()
+    recover(db)
     yield
 
 
@@ -138,6 +141,11 @@ def init_indexes():
     db.messages.create_index("source_id", unique=True, sparse=True)
     db.inspections.create_index("request_id", unique=True)
     db.feedback.create_index([("project_id", 1), ("customer_id", 1)], unique=True)
+    db.portfolio.create_index("project_id", unique=True)
+    db.projects.create_index("manager_id")
+    db.projects.create_index("worker_ids")
+    db.requests.create_index("customer_id")
+    db.quotes.create_index("project_id")
     db.files.create_index("owner_id")
     db.tasks.create_index("worker_id")
 
@@ -170,6 +178,7 @@ def owned_files(u, ids, kind=None):
             or db.inspections.find_one({"file_ids": id})
             or db.quotes.find_one({"pdf_id": id})
             or db.messages.find_one({"file_id": id})
+            or db.services.find_one({"image_id": id})
         ):
             fail(409, "Attachment already linked")
 
@@ -310,6 +319,7 @@ def create_request(d: RequestInput, u=Depends(user)):
 @app.get("/api/requests")
 def requests(u=Depends(user)):
     roles(u, "ADMIN", "CUSTOMER")
+    recover(db)
     return [
         clean(d)
         for d in db.requests.find(
@@ -330,20 +340,29 @@ def inspection(rid: str, u=Depends(user)):
 def inspect(rid: str, d: InspectionInput, u=Depends(user)):
     roles(u, "ADMIN")
     get("requests", rid)
-    owned_files(u, d.file_ids, "image")
-    valid_date(d.date[:10])
     existing = db.inspections.find_one({"request_id": rid})
+    old_ids = existing.get("file_ids", []) if existing else []
+    owned_files(u, [fid for fid in d.file_ids if fid not in old_ids], "image")
+    valid_date(d.date[:10])
     if existing and existing.get("completed"):
         fail(409, "Completed inspection is immutable")
-    payload = {**d.model_dump(), "admin_id": u["id"], "updated_at": now()}
-    db.inspections.update_one(
-        {"request_id": rid},
-        {
-            "$set": payload,
-            "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now()},
-        },
-        upsert=True,
-    )
+    payload = {
+        **d.model_dump(),
+        "file_ids": list(dict.fromkeys(old_ids + d.file_ids)),
+        "admin_id": u["id"],
+        "updated_at": now(),
+    }
+    try:
+        db.inspections.update_one(
+            {"request_id": rid, "completed": {"$ne": True}},
+            {
+                "$set": payload,
+                "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": now()},
+            },
+            upsert=True,
+        )
+    except DuplicateKeyError:
+        fail(409, "Inspection was completed by another update")
     db.requests.update_one(
         {"id": rid},
         {
@@ -354,6 +373,11 @@ def inspect(rid: str, d: InspectionInput, u=Depends(user)):
             }
         },
     )
+    notify(
+        get("requests", rid)["customer_id"],
+        "Site inspection " + ("completed" if d.completed else "scheduled"),
+    )
+    recover(db)
     audit(u, "inspection_recorded", rid)
     return {"ok": True}
 
@@ -433,10 +457,17 @@ def publish(qid: str, u=Depends(user)):
     q = get("quotes", qid)
     if not db.inspections.find_one({"request_id": q["request_id"], "completed": True}):
         fail(409, "Inspection required")
-    if not db.quotes.update_one(
+    if (
+        q.get("project_id")
+        and get("projects", q["project_id"])["status"] == "Completed"
+    ):
+        fail(409, "Completed projects are read-only")
+    q = db.quotes.find_one_and_update(
         {"id": qid, "status": "Draft"},
         {"$set": {"status": "Published", "published_at": now()}},
-    ).modified_count:
+        return_document=ReturnDocument.AFTER,
+    )
+    if not q:
         fail(409, "Quotation already published")
     if q["project_id"]:
         db.projects.update_one(
@@ -470,6 +501,7 @@ def publish(qid: str, u=Depends(user)):
             {"id": q["request_id"]}, {"$set": {"status": "Quotation Published"}}
         )
     notify(q["customer_id"], "A phase quotation is ready for your review")
+    recover(db)
     audit(u, "quote_published", qid)
     return {"ok": True}
 
@@ -499,6 +531,7 @@ def decision(qid: str, d: Decision, u=Depends(user)):
         )
     for a in db.users.find({"role": "ADMIN"}):
         notify(a["id"], "Customer quotation decision: " + d.decision)
+    recover(db)
     audit(u, "quote_" + d.decision, qid)
     return {"ok": True}
 
@@ -554,12 +587,14 @@ def create_project(d: ProjectInput, u=Depends(user)):
         {"id": r["id"]}, {"$set": {"status": "Converted to Project"}}
     )
     notify(d.manager_id, "You have been assigned " + d.title)
+    recover(db)
     audit(u, "project_created", p["id"])
     return p
 
 
 @app.get("/api/projects")
 def projects(u=Depends(user)):
+    recover(db)
     query = (
         {}
         if u["role"] == "ADMIN"
@@ -621,7 +656,14 @@ def milestone(pid: str, d: MilestoneInput, u=Depends(user)):
         fail(422, "Phase not found")
     return insert(
         "milestones",
-        {**d.model_dump(), "project_id": pid, "progress": 0, "updated_by": u["id"]},
+        {
+            **d.model_dump(),
+            "project_id": pid,
+            "status": "Pending",
+            "progress": 0,
+            "updated_at": now(),
+            "updated_by": u["id"],
+        },
     )
 
 
@@ -634,9 +676,38 @@ def progress(mid: str, d: Progress, u=Depends(user)):
         {"id": mid},
         {"$set": {"progress": d.progress, "updated_by": u["id"], "updated_at": now()}},
     )
+    db.milestones.update_one(
+        {"id": mid},
+        {
+            "$set": {
+                "status": "Completed"
+                if d.progress == 100
+                else "In Progress"
+                if d.progress
+                else "Pending"
+            }
+        },
+    )
+    if d.publish:
+        db.milestones.update_one(
+            {"id": mid},
+            {
+                "$set": {
+                    "published_update": {
+                        "progress": d.progress,
+                        "by": u["id"],
+                        "name": u["name"],
+                        "role": u["role"],
+                        "at": now(),
+                    }
+                }
+            },
+        )
     allm = list(db.milestones.find({"project_id": p["id"]}))
-    pct = round(sum(m["progress"] for m in allm) / len(allm))
+    pct = sum(m["progress"] for m in allm) // len(allm)
     db.projects.update_one({"id": p["id"]}, {"$set": {"progress": pct}})
+    recover(db)
+    notify(p["customer_id"], "Verified milestone update: " + m["title"])
     audit(u, "milestone_updated", mid)
     return {"ok": True}
 
@@ -647,7 +718,8 @@ def complete(pid: str, u=Depends(user)):
     execution(u, p)
     if any(phase["status"] != "Completed" for phase in p["phases"]):
         fail(409, "Mark all project phases completed first")
-    if p["progress"] != 100 or not db.milestones.count_documents({"project_id": pid}):
+    allm = list(db.milestones.find({"project_id": pid}))
+    if not allm or any(m["progress"] != 100 for m in allm):
         fail(409, "Complete all milestones first")
     if db.tasks.count_documents({"project_id": pid, "status": {"$ne": "Completed"}}):
         fail(409, "Complete all tasks first")
@@ -694,11 +766,14 @@ def task_status(tid: str, d: Decision, u=Depends(user)):
     project_access(u, p)
     if u["role"] == "CUSTOMER" or (u["role"] == "WORKER" and t["worker_id"] != u["id"]):
         fail(403, "Not your task")
+    if p["status"] != "Active":
+        fail(409, "Task updates require an active project")
     if d.decision not in ("Pending", "In Progress", "Completed", "Blocked"):
         fail(422, "Invalid status")
     db.tasks.update_one(
         {"id": tid}, {"$set": {"status": d.decision, "updated_at": now()}}
     )
+    audit(u, "task_status_updated", tid)
     return {"ok": True}
 
 
@@ -769,6 +844,7 @@ def verify(mid: str, d: Verify, u=Depends(user)):
         "verification": "Approved" if d.approved else "Rejected",
         "verified_by": u["id"],
         "verified_at": now(),
+        "review_note": d.text,
     }
     if d.share:
         update.update({"published": True, "share_text": d.text or m["text"]})
@@ -789,6 +865,7 @@ def verify(mid: str, d: Verify, u=Depends(user)):
 def finance(pid: str, u=Depends(user)):
     p = get("projects", pid)
     financial(u, p["customer_id"])
+    recover(db)
     qs = list(
         db.quotes.find(
             {
@@ -867,16 +944,7 @@ async def upload(file: UploadFile = File(...), u=Depends(user)):
     data = await file.read(10 * 1024 * 1024 + 1)
     if len(data) > 10 * 1024 * 1024:
         fail(422, "Maximum file size is 10 MB")
-    if data.startswith(b"%PDF-"):
-        kind, ext = "pdf", ".pdf"
-    elif data.startswith(b"\x89PNG\r\n\x1a\n"):
-        kind, ext = "image", ".png"
-    elif data.startswith(b"\xff\xd8\xff"):
-        kind, ext = "image", ".jpg"
-    elif data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        kind, ext = "image", ".webp"
-    else:
-        fail(422, "Upload a PDF, PNG, JPEG or WebP file")
+    kind, ext = validate_asset(data)
     if kind == "pdf":
         roles(u, "ADMIN")
     id = str(uuid.uuid4())
@@ -1025,22 +1093,68 @@ def phase_update(pid: str, number: int, d: PhaseInput, u=Depends(user)):
     execution(u, p)
     valid_date(d.start_date)
     valid_date(d.deadline)
-    if d.deadline < d.start_date or d.status not in ("Planned", "Active", "Completed"):
-        fail(422, "Invalid phase dates or status")
+    phase = next((ph for ph in p["phases"] if ph["number"] == number), None)
+    if not phase:
+        fail(404, "Phase not found")
+    if d.deadline < d.start_date:
+        fail(422, "Deadline precedes start date")
+    allowed = {
+        "Planned": {"Planned", "Active"},
+        "Active": {"Active", "Completed"},
+        "Completed": {"Completed"},
+    }
+    if d.status not in allowed[phase["status"]]:
+        fail(
+            409,
+            "Invalid phase transition; activate a planned phase before completing it",
+        )
+    if phase["status"] == "Completed" and (
+        d.title != phase["title"]
+        or d.start_date != phase["start_date"]
+        or d.deadline != phase["deadline"]
+    ):
+        fail(409, "Completed phases are immutable")
+    if d.status == "Active":
+        q = db.quotes.find_one(
+            {"id": phase.get("quote_id"), "status": {"$in": ["Published", "Accepted"]}}
+        )
+        if not q:
+            fail(409, "Admin must publish this phase quotation before execution")
+        if any(
+            ph["number"] < number
+            and ph["status"] != "Completed"
+            or ph["number"] != number
+            and ph["status"] == "Active"
+            for ph in p["phases"]
+        ):
+            fail(409, "Finish the current and preceding phases first")
+    if d.status == "Completed":
+        if db.milestones.count_documents(
+            {"project_id": pid, "phase": number, "progress": {"$ne": 100}}
+        ) or db.tasks.count_documents(
+            {"project_id": pid, "phase": number, "status": {"$ne": "Completed"}}
+        ):
+            fail(409, "Complete this phase milestones and tasks before closing it")
     result = db.projects.update_one(
-        {"id": pid, "phases.number": number},
+        {
+            "id": pid,
+            "phases": {"$elemMatch": {"number": number, "status": phase["status"]}},
+        },
         {
             "$set": {
                 "phases.$.title": d.title,
                 "phases.$.start_date": d.start_date,
                 "phases.$.deadline": d.deadline,
                 "phases.$.status": d.status,
+                "phases.$.updated_by": u["id"],
+                "phases.$.updated_at": now(),
             }
         },
     )
     if not result.matched_count:
-        fail(404, "Phase not found")
+        fail(409, "Phase changed; reload and retry")
     audit(u, "phase_updated", pid)
+    notify(p["customer_id"], "Phase " + str(number) + " is " + d.status)
     return {"ok": True}
 
 
@@ -1059,13 +1173,17 @@ def reassign(pid: str, d: Reassign, u=Depends(user)):
 @app.post("/api/services")
 def add_service(d: ServiceInput, u=Depends(user)):
     roles(u, "ADMIN")
+    if d.image_id:
+        owned_files(u, [d.image_id], "image")
     return insert("services", d.model_dump())
 
 
 @app.put("/api/services/{sid}")
 def edit_service(sid: str, d: ServiceInput, u=Depends(user)):
     roles(u, "ADMIN")
-    get("services", sid)
+    old = get("services", sid)
+    if d.image_id and d.image_id != old.get("image_id"):
+        owned_files(u, [d.image_id], "image")
     db.services.update_one({"id": sid}, {"$set": d.model_dump()})
     return {"ok": True}
 
@@ -1370,3 +1488,13 @@ def edit_milestone(mid: str, d: MilestoneInput, u=Depends(user)):
     )
     audit(u, "milestone_definition_updated", mid)
     return {"ok": True}
+
+
+from .enhancements import install as install_enhancements
+import sys
+
+install_enhancements(app, sys.modules[__name__])
+
+from .serialization import install as install_serialization
+
+install_serialization(app, sys.modules[__name__])

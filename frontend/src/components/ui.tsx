@@ -72,15 +72,17 @@ export function Select({
   label,
   name,
   options,
+  defaultValue,
 }: {
   label: string;
   name: string;
   options: (string | { value: string; label: string })[];
+  defaultValue?:string|number;
 }) {
   return (
     <label>
       {label}
-      <select name={name} required>
+      <select name={name} required defaultValue={defaultValue}>
         {options.map((v) =>
           typeof v === "string" ? (
             <option key={v}>{v}</option>

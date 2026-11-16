@@ -51,7 +51,7 @@ class BOQItem(Model):
 
 
 class QuoteInput(Model):
-    phase: int = Field(ge=1, le=100)
+    phase: int = Field(ge=1, le=2147483647)
     title: str = Field(min_length=2, max_length=200)
     description: str = Field(min_length=5, max_length=10000)
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
@@ -92,14 +92,17 @@ class MilestoneInput(Model):
 
 class Progress(Model):
     progress: int = Field(ge=0, le=100)
+    publish: bool = False
 
 
 class TaskInput(Model):
+    phase: int = Field(default=1, ge=1, le=2147483647)
     title: str = Field(min_length=2, max_length=200)
     description: str = Field(default="", max_length=5000)
     worker_id: str
     deadline: str = Field(min_length=10, max_length=10)
     priority: str = Field(default="Normal", pattern="^(Normal|High|Urgent)$")
+    phase: int = Field(default=1, ge=1, le=2147483647)
 
 
 class MessageInput(Model):
@@ -153,6 +156,8 @@ class Reassign(Model):
 
 
 class ServiceInput(Model):
+    image_id: str | None = None
+    image_id: str | None = None
     name: str = Field(min_length=2, max_length=100)
     description: str = Field(min_length=10, max_length=5000)
     active: bool = True
@@ -194,3 +199,25 @@ class EmployeeDetails(Model):
     name: str = Field(min_length=2, max_length=100)
     email: EmailAddress
     phone: str = Field(default="", max_length=100)
+
+
+class PortfolioInput(Model):
+    title: str = Field(min_length=3, max_length=200)
+    description: str = Field(min_length=10, max_length=5000)
+    category: str = Field(min_length=2, max_length=100)
+    file_ids: list[str] = Field(min_length=1, max_length=20)
+    published: bool = True
+    show_feedback: bool = False
+
+
+class ProjectStatusInput(Model):
+    status: str = Field(pattern="^(Active|On Hold)$")
+    note: str = Field(min_length=3, max_length=2000)
+
+
+class PhaseCreate(Model):
+    number: int = Field(ge=2, le=2147483647)
+    title: str = Field(min_length=2, max_length=200)
+    duration: int = Field(ge=1, le=3650)
+    start_date: str = ""
+    deadline: str = ""

@@ -11,10 +11,10 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import main as m
 
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII="
-)
-PDF = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
+from app.demo_assets import room_png, quotation_pdf
+
+PNG = room_png()
+PDF = quotation_pdf()
 
 
 @pytest.fixture()
@@ -297,6 +297,18 @@ def test_complete_end_to_end(env):
     assert call(c, f"/projects/{pid}/finance", method="get")["paid_cents"] == 0
     call(manager, f"/milestones/{milestone['id']}", {"progress": 100}, method="patch")
     for ph in (1, 2):
+        if ph == 2:
+            call(
+                a,
+                f"/projects/{pid}/phases/{ph}",
+                {
+                    "title": f"Phase {ph}",
+                    "start_date": "2026-11-17",
+                    "deadline": "2026-12-01",
+                    "status": "Active",
+                },
+                method="patch",
+            )
         call(
             a,
             f"/projects/{pid}/phases/{ph}",
